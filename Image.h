@@ -2,7 +2,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+
 #include "Vec3.h"
+#include "Scene.h"
 
 class Image {
 public:
@@ -14,7 +16,7 @@ public:
         }
     };
 
-    void savePPM(std::string filename) {
+    void savePPM(const std::string& filename) {
         std::ofstream PPMfile;
         PPMfile.open(filename);
         PPMfile << "P3" << std::endl;
@@ -22,27 +24,41 @@ public:
         PPMfile << 255 << std::endl;
 
         for(int i = 0; i < width*height; i++) {
-            PPMfile << (int)(img[i].v0*255) << " ";
-            PPMfile << (int)(img[i].v1*255) << " ";
-            PPMfile << (int)(img[i].v2*255) << std::endl;
+            PPMfile << (int)(img[i][0]*255) << " ";
+            PPMfile << (int)(img[i][1]*255) << " ";
+            PPMfile << (int)(img[i][2]*255) << std::endl;
         }
 
         PPMfile.close();
     }
 
-    void fillBackgroundY(Vec3<float>& colorTop, Vec3<float>& colorBottom) {
+    void fillBackgroundY(const Vec3<float>& colorTop, const Vec3<float>& colorBottom) {
         Vec3<float> currentColor = colorTop;
 
         #pragma omp for
         for(int j = 0; j < height; j++) {
-            if (j > 0) {
-                // currentColor = (colorBottom - colorTop) * (j/height) + colorTop;
-                currentColor = (colorTop / j) + (colorBottom / (height - j));
-                currentColor.normalize();
-            }
+            // currentColor = (colorBottom - colorTop) * (j/height) + colorTop;
+            // currentColor = (colorTop / j) + (colorBottom / (height - j));
+            // currentColor = (colorTop)*((height - 1 - j) / ((float) height - 1)) + (colorBottom)*(j / ((float) height - 1));
+            currentColor = (colorBottom - colorTop) * (j / ((float) height - 1)) + colorTop;
+            // currentColor.normalize();
 
             for(int i = 0; i < width; i++) {
                 img[i + j*width] = currentColor;
+            }
+        }
+    }
+
+    Scene& getScene() {
+        return scene;
+    }
+
+    void rayTrace() {
+        const auto cameraPosition = scene.getCameraPosition();
+
+        for(int i = 0; i < width; i++) {
+            for(int j = 0; j < height; j++) {
+
             }
         }
     }
@@ -52,4 +68,5 @@ private:
     std::vector<Vec3<float>> img;
     int width;
     int height;
+    Scene scene;
 };
