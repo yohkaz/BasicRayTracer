@@ -1,3 +1,6 @@
+#ifndef IMAGE_H
+#define IMAGE_H
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -5,6 +8,7 @@
 
 #include "Vec3.h"
 #include "Scene.h"
+#include "Ray.h"
 
 class Image {
 public:
@@ -35,13 +39,9 @@ public:
     void fillBackgroundY(const Vec3<float>& colorTop, const Vec3<float>& colorBottom) {
         Vec3<float> currentColor = colorTop;
 
-        #pragma omp for
+        // #pragma omp parallel for
         for(int j = 0; j < height; j++) {
-            // currentColor = (colorBottom - colorTop) * (j/height) + colorTop;
-            // currentColor = (colorTop / j) + (colorBottom / (height - j));
-            // currentColor = (colorTop)*((height - 1 - j) / ((float) height - 1)) + (colorBottom)*(j / ((float) height - 1));
             currentColor = (colorBottom - colorTop) * (j / ((float) height - 1)) + colorTop;
-            // currentColor.normalize();
 
             for(int i = 0; i < width; i++) {
                 img[i + j*width] = currentColor;
@@ -54,11 +54,27 @@ public:
     }
 
     void rayTrace() {
-        const auto cameraPosition = scene.getCameraPosition();
+        const Vec3<float>& cameraPosition = scene.getCamera().getPosition();
+        scene.getCamera().printInfos();
 
+        #pragma omp parallel for collapse(2)
         for(int i = 0; i < width; i++) {
             for(int j = 0; j < height; j++) {
+                Vec3<float> pixelPosition = scene.getCamera().computePixelPosition(i, j, width, height);
+                Ray ray(cameraPosition, normalize(pixelPosition - cameraPosition));
+                float e = -1;
+                bool foundHit = false;
 
+                if (i == width-1 && j == height-1)
+                    std::cout << "      LastPixelPosition:  " << pixelPosition << std::endl;
+                for(const auto& model : scene.getModels()) {
+                    Ray::Hit hit;
+                    if(ray.intersect(model, hit) && (hit.distance < e || !foundHit)) {
+                        foundHit = true;
+                        e = hit.distance;
+                        img[i + j*width] = Vec3<float>(1.0, 1.0 / (float) model.getVertices().size(), 0);
+                    }
+                }
             }
         }
     }
@@ -70,3 +86,5 @@ private:
     int height;
     Scene scene;
 };
+
+#endif

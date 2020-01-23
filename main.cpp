@@ -22,14 +22,21 @@ void TD2(int width, int height, std::string& filename) {
     img.fillBackgroundY(white, blue);
 
     // Define a triangle model
-    std::vector<Vec3<float>> triangle_vertices = {Vec3<float>(0, 0, -1),
-                                                  Vec3<float>(1, 0, -1),
-                                                  Vec3<float>(0, 1, -1)};
-    std::vector<int> triangle_indexes = {0, 1, 2};
-    Model triangle(triangle_vertices, triangle_indexes);
-
+    std::vector<Vec3<float>> triangle_vertices = {Vec3<float>(0, 0, -2),
+                                                  Vec3<float>(-1, 0, -2),
+                                                  Vec3<float>(0, -1, -2)};
+    std::vector<Vec3<int>> triangle_indices = {Vec3<int>(0, 1, 2)};
+    Model triangle(triangle_vertices, triangle_indices);
     // Add triangle to scene
     img.getScene().add(triangle);
+
+    // Define a sphere model
+    Model sphere("../models/geometry/sphere2.off");
+    // Add triangle to scene
+    img.getScene().add(sphere);
+
+    img.rayTrace();
+    img.savePPM(filename);
 }
 
 void parseArguments(int argc, char *argv[], int& width, int& height, std::string& filename) {
@@ -47,19 +54,20 @@ void parseArguments(int argc, char *argv[], int& width, int& height, std::string
             i++;
         }
     }
-    std::cout << "Width:       " << width << std::endl;
-    std::cout << "Height:      " << height << std::endl;
-    std::cout << "Output file: " << filename << std::endl;
+    std::cout << "main.cpp" << std::endl;
+    std::cout << "      Width:       " << width << std::endl;
+    std::cout << "      Height:      " << height << std::endl;
+    std::cout << "      Output file: " << filename << std::endl;
 }
 
 int main(int argc, char *argv[]) {
-    int width = 200;
-    int height = 200;
+    int width = 600;
+    int height = 400;
     std::string filename = "default.ppm";
     parseArguments(argc, argv, width, height, filename);
 
-    TD1(width, height, filename);
-    // TD2(width, height, filename);
+    // TD1(width, height, filename);
+    TD2(width, height, filename);
     
     return 0;
 }

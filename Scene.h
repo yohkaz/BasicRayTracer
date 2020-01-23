@@ -1,3 +1,6 @@
+#ifndef SCENE_H
+#define SCENE_H
+
 #include <vector>
 #include "Camera.h"
 #include "Model.h"
@@ -10,10 +13,12 @@ public:
         models.push_back(model);
     }
 
-    const Vec3<float>& getCameraPosition() const {
-        return camera.getPosition();
-    }
+    const Camera& getCamera() const { return camera; }
+    const std::vector<Model>& getModels() const { return models; }
+    const Vec3<float>& getCameraPosition() const { return camera.getPosition(); }
 private:
     Camera camera;
     std::vector<Model> models;
 };
+
+#endif
