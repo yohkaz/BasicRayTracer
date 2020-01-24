@@ -19,7 +19,7 @@ public:
         right = normalize(cross(up, n));
         up = normalize(cross(n, right));
 
-        firstPixelPosition = ((position - n)*distanceToPlane) - right*(width/2.0f) + up*(height/2.0f);
+        topLeftPixelPosition = ((position - n)*distanceToPlane) - right*(width/2.0f) + up*(height/2.0f);
     }
 
     // Set functions
@@ -34,8 +34,8 @@ public:
     float getWidth() const { return width; }
     float getHeight() const { return height; }
 
-    Vec3<float> computePixelPosition(int i, int j, int xRes, int yRes) const {
-        return firstPixelPosition + (right*(float) i*(width/(float) xRes)) - (up*(float) j*(height/(float) yRes));
+    Vec3<float> computePixelPosition(float x, float y) const {
+        return topLeftPixelPosition + (right* x * width) - (up * y * height);
     }
 
     void printInfos() const {
@@ -47,7 +47,7 @@ public:
         std::cout << "      n:          " << n << std::endl;
         std::cout << "      up:         " << up << std::endl;
         std::cout << "      right:      " << right << std::endl;
-        std::cout << "      firstPixelPosition:    " << firstPixelPosition << std::endl;
+        std::cout << "      topLeftPixelPosition:    " << topLeftPixelPosition << std::endl;
     }
 
 private:
@@ -63,7 +63,7 @@ private:
     Vec3<float> up;
     Vec3<float> right;
     Vec3<float> n;              // normal to the viewing plane
-    Vec3<float> firstPixelPosition;
+    Vec3<float> topLeftPixelPosition;
 };
 
 #endif

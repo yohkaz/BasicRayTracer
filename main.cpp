@@ -1,4 +1,7 @@
 #include "Image.h"
+#include "Scene.h"
+#include "RayTracer.h"
+#include "PointLight.h"
 
 void TD1(int width, int height, std::string& filename){
     // Blue color
@@ -20,6 +23,8 @@ void TD2(int width, int height, std::string& filename) {
     // Define our image
     Image img(width, height);
     img.fillBackgroundY(white, blue);
+    // Define our Scene
+    Scene scene;
 
     // Define a triangle model
     std::vector<Vec3<float>> triangle_vertices = {Vec3<float>(0, 0, -2),
@@ -28,14 +33,53 @@ void TD2(int width, int height, std::string& filename) {
     std::vector<Vec3<int>> triangle_indices = {Vec3<int>(0, 1, 2)};
     Model triangle(triangle_vertices, triangle_indices);
     // Add triangle to scene
-    img.getScene().add(triangle);
+    scene.add(triangle);
 
     // Define a sphere model
     Model sphere("../models/geometry/sphere2.off");
     // Add triangle to scene
-    img.getScene().add(sphere);
+    scene.add(sphere);
 
-    img.rayTrace();
+    RayTracer::render(img, scene);
+    img.savePPM(filename);
+}
+
+void TD3(int width, int height, std::string& filename) {
+    // Blue color
+    Vec3<float> blue(0, 0, 1);
+    // White color
+    Vec3<float> white(1, 1, 1);
+
+    // Define our image
+    Image img(width, height);
+    img.fillBackgroundY(white, blue);
+    // Define our Scene
+    Scene scene;
+
+    // Define a triangle model
+    std::vector<Vec3<float>> triangle_vertices = {Vec3<float>(1, 0, -1),
+                                                  Vec3<float>(0, 0, -1),
+                                                  Vec3<float>(1, -1, -1)};
+    std::vector<Vec3<int>> triangle_indices = {Vec3<int>(0, 1, 2)};
+    Model triangle(triangle_vertices, triangle_indices);
+    triangle.setMaterial(Material(Vec3<float>(1.0, 0, 0), 1.f));
+    // Add triangle to scene
+    scene.add(triangle);
+
+    // Define a face model
+    Model face("../models/example_lowres.off");
+    face.setMaterial(Material(Vec3<float>(0.8, 0.4, 0), 1.f));
+    // Add triangle to scene
+    scene.add(face);
+
+    // Define a light
+    Vec3<float> lightPos = Vec3<float>(2.f, 2.f, 2.f);
+    // Vec3<float> lightPos = Vec3<float>(0.f, 0.f, 0.f);
+    Vec3<float> lightColor = Vec3<float>(1.f, 1.f, 1.f);
+    float lightIntensity = 1.f;
+    scene.add(PointLight(lightPos, lightColor, lightIntensity));
+
+    RayTracer::render(img, scene);
     img.savePPM(filename);
 }
 
@@ -67,7 +111,8 @@ int main(int argc, char *argv[]) {
     parseArguments(argc, argv, width, height, filename);
 
     // TD1(width, height, filename);
-    TD2(width, height, filename);
+    // TD2(width, height, filename);
+    TD3(width, height, filename);
     
     return 0;
 }

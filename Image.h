@@ -5,10 +5,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-
 #include "Vec3.h"
-#include "Scene.h"
-#include "Ray.h"
 
 class Image {
 public:
@@ -19,6 +16,9 @@ public:
             }
         }
     };
+
+	const Vec3<float>& operator() (size_t x, size_t y) const { return img[x + y*width]; }
+	Vec3<float>& operator() (size_t x, size_t y) { return img[x + y*width]; }
 
     void savePPM(const std::string& filename) {
         std::ofstream PPMfile;
@@ -49,42 +49,14 @@ public:
         }
     }
 
-    Scene& getScene() {
-        return scene;
-    }
-
-    void rayTrace() {
-        const Vec3<float>& cameraPosition = scene.getCamera().getPosition();
-        scene.getCamera().printInfos();
-
-        #pragma omp parallel for collapse(2)
-        for(int i = 0; i < width; i++) {
-            for(int j = 0; j < height; j++) {
-                Vec3<float> pixelPosition = scene.getCamera().computePixelPosition(i, j, width, height);
-                Ray ray(cameraPosition, normalize(pixelPosition - cameraPosition));
-                float e = -1;
-                bool foundHit = false;
-
-                if (i == width-1 && j == height-1)
-                    std::cout << "      LastPixelPosition:  " << pixelPosition << std::endl;
-                for(const auto& model : scene.getModels()) {
-                    Ray::Hit hit;
-                    if(ray.intersect(model, hit) && (hit.distance < e || !foundHit)) {
-                        foundHit = true;
-                        e = hit.distance;
-                        img[i + j*width] = Vec3<float>(1.0, 1.0 / (float) model.getVertices().size(), 0);
-                    }
-                }
-            }
-        }
-    }
+    int getWidth() const { return width; }
+    int getHeight() const { return height; }
 
 private:
     // 3 floats value per pixel (RGB)
     std::vector<Vec3<float>> img;
     int width;
     int height;
-    Scene scene;
 };
 
 #endif

@@ -5,9 +5,11 @@
 #include <fstream>
 #include <sstream>
 #include "Vec3.h"
+#include "Material.h"
 
 class Model {
 public:
+    // Constructors
     Model(std::string filename) {
         std::ifstream file;
         file.open(filename);
@@ -22,7 +24,7 @@ public:
         if(line.compare("OFF") == 0) {
             std::cout << "Model.h" << std::endl;
             std::cout << "      Loading OFF file: " << filename << std::endl;
-            readOFF(file);
+            loadOFF(file);
         }
 
         computeFaceNormals();
@@ -33,11 +35,17 @@ public:
         computeFaceNormals();
     }
 
+    // Set functions
+    void setMaterial(const Material& m) { material = m; }
+
+    // Get functions
     const std::vector<Vec3<float>>& getVertices() const { return vertices; }
     const std::vector<Vec3<int>>& getIndices() const { return indices; }
     const std::vector<Vec3<float>>& getFaceNormals() const { return faceNormals; }
+    const Material& getMaterial() const { return material; }
+
 private:
-    void readOFF(std::ifstream& file) {
+    void loadOFF(std::ifstream& file) {
         vertices.clear();
         indices.clear();
 
@@ -59,7 +67,7 @@ private:
                 float x, y, z;
                 if (!(iss >> x >> y >> z))
                     break;  // error
-                z -= 4;
+                z -= 2;
                 vertices.push_back(Vec3<float>(x, y, z));
             } else if (numberOfFaces-- > 0) {
                 int numberOfIndices;
@@ -81,7 +89,32 @@ private:
         }
     }
 
+    void computeCentroid() {
+        centroid = Vec3<float>(0, 0, 0);
+        for (auto& v : vertices)
+            centroid = centroid + v;
+
+        centroid /= vertices.size();
+    }
+
+    void reorientFaceNormals() {
+        for (std::size_t i=0; i < indices.size(); i++) {
+        // for (const auto& face : indices) {
+            const auto& v0 = vertices[indices[i][0]];
+            const auto& v1 = vertices[indices[i][1]];
+            const auto& v2 = vertices[indices[i][2]];
+            Vec3<float> faceMid = (v0 + v1 + v2) / 3;
+
+            double distToCentroid = (faceMid - centroid).length();
+            double distWithNormal = ((faceMid + faceNormals[i]) - centroid).length();
+
+            if (distWithNormal < distToCentroid)
+                faceNormals[i] = faceNormals[i] * -1;
+        }
+    }
+
     void computeFaceNormals() {
+        computeCentroid();
         faceNormals.clear();
         for (const auto& face : indices) {
             const auto& v0 = vertices[face[0]];
@@ -93,11 +126,14 @@ private:
 
             faceNormals.push_back(normalize(cross(e1, e2)));
         }
+        reorientFaceNormals();
     }
 
     std::vector<Vec3<float>> vertices;      // vertices positions
     std::vector<Vec3<int>> indices;         // each Vec3 contain the indices of a triangle
     std::vector<Vec3<float>> faceNormals;   // normal of the faces
+    Vec3<float> centroid;
+    Material material;
 };
 
 #endif
