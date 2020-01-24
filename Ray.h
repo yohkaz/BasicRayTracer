@@ -88,7 +88,7 @@ public:
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
         const auto& faceNormals = model.getFaceNormals();
-        const auto& verticeNormals = model.getVerticeNormals();
+        const auto& vertexNormals = model.getVertexNormals();
 
         // Iterate through each triangle and check if there is an intersection
         bool intersected = false;
@@ -102,9 +102,9 @@ public:
                 hit = currentHit;
                 hit.index = i;
                 hit.faceNormal = n;
-                hit.vNormal0 = verticeNormals[triangle[0]];
-                hit.vNormal1 = verticeNormals[triangle[1]];
-                hit.vNormal2 = verticeNormals[triangle[2]];
+                hit.vNormal0 = vertexNormals[triangle[0]];
+                hit.vNormal1 = vertexNormals[triangle[1]];
+                hit.vNormal2 = vertexNormals[triangle[2]];
 
                 intersected = true;
             }

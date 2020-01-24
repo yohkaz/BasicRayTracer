@@ -44,7 +44,7 @@ public:
     const std::vector<Vec3<float>>& getVertices() const { return vertices; }
     const std::vector<Vec3<int>>& getIndices() const { return indices; }
     const std::vector<Vec3<float>>& getFaceNormals() const { return faceNormals; }
-    const std::vector<Vec3<float>>& getVerticeNormals() const { return verticeNormals; }
+    const std::vector<Vec3<float>>& getVertexNormals() const { return vertexNormals; }
     const Material& getMaterial() const { return material; }
 
 private:
@@ -152,18 +152,18 @@ private:
             if (vertexFaces.size() == 0 || vNormal.length() == 0) {
                 vNormal = vNormal + Vec3<float>(1.0, 1.0, 1.0);
                 vNormal.normalize();
-                verticeNormals.push_back(vNormal);
+                vertexNormals.push_back(vNormal);
                 continue;
             }
 
             vNormal = vNormal / vertexFaces.size();
             vNormal.normalize();
-            verticeNormals.push_back(vNormal);
+            vertexNormals.push_back(vNormal);
         }
     }
 
     std::vector<Vec3<float>> vertices;          // vertices positions
-    std::vector<Vec3<float>> verticeNormals;   // normal of the vertices
+    std::vector<Vec3<float>> vertexNormals;   // normal of the vertices
     std::vector<Vec3<int>> indices;             // each Vec3 contain the indices of a triangle
     std::vector<Vec3<float>> faceNormals;       // normal of the faces
     Vec3<float> centroid;
