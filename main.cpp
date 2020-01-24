@@ -57,12 +57,13 @@ void TD3(int width, int height, std::string& filename) {
     Scene scene;
 
     // Define a triangle model
-    std::vector<Vec3<float>> triangle_vertices = {Vec3<float>(1, 0, -1),
-                                                  Vec3<float>(0, 0, -1),
-                                                  Vec3<float>(1, -1, -1)};
-    std::vector<Vec3<int>> triangle_indices = {Vec3<int>(0, 1, 2)};
+    std::vector<Vec3<float>> triangle_vertices = {Vec3<float>(0.5, -0.6, -2),
+                                                  Vec3<float>(-0.5, -0.6, -2),
+                                                  Vec3<float>(-0.5, -0.6, -2.5),
+                                                  Vec3<float>(0.5, -0.6, -2.5)};
+    std::vector<Vec3<int>> triangle_indices = {Vec3<int>(0, 2, 1), Vec3<int>(0, 3, 2)};
     Model triangle(triangle_vertices, triangle_indices);
-    triangle.setMaterial(Material(Vec3<float>(1.0, 0, 0), 1.f));
+    triangle.setMaterial(Material(Vec3<float>(1.0, 0.0, 0), 1.f));
     // Add triangle to scene
     scene.add(triangle);
 
@@ -73,7 +74,7 @@ void TD3(int width, int height, std::string& filename) {
     scene.add(face);
 
     // Define a light
-    Vec3<float> lightPos = Vec3<float>(2.f, 2.f, 2.f);
+    Vec3<float> lightPos = Vec3<float>(1.f, 1.f, -2.f);
     // Vec3<float> lightPos = Vec3<float>(0.f, 0.f, 0.f);
     Vec3<float> lightColor = Vec3<float>(1.f, 1.f, 1.f);
     float lightIntensity = 1.f;

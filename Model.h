@@ -28,11 +28,13 @@ public:
         }
 
         computeFaceNormals();
+        computeVertexNormals();
     }
 
     Model(std::vector<Vec3<float>> vertices, std::vector<Vec3<int>> indices):
             vertices(vertices), indices(indices) {
         computeFaceNormals();
+        computeVertexNormals();
     }
 
     // Set functions
@@ -42,6 +44,7 @@ public:
     const std::vector<Vec3<float>>& getVertices() const { return vertices; }
     const std::vector<Vec3<int>>& getIndices() const { return indices; }
     const std::vector<Vec3<float>>& getFaceNormals() const { return faceNormals; }
+    const std::vector<Vec3<float>>& getVerticeNormals() const { return verticeNormals; }
     const Material& getMaterial() const { return material; }
 
 private:
@@ -67,7 +70,7 @@ private:
                 float x, y, z;
                 if (!(iss >> x >> y >> z))
                     break;  // error
-                z -= 2;
+                z -= 3;
                 vertices.push_back(Vec3<float>(x, y, z));
             } else if (numberOfFaces-- > 0) {
                 int numberOfIndices;
@@ -114,7 +117,7 @@ private:
     }
 
     void computeFaceNormals() {
-        computeCentroid();
+        // computeCentroid();
         faceNormals.clear();
         for (const auto& face : indices) {
             const auto& v0 = vertices[face[0]];
@@ -126,12 +129,43 @@ private:
 
             faceNormals.push_back(normalize(cross(e1, e2)));
         }
-        reorientFaceNormals();
+        // reorientFaceNormals();
     }
 
-    std::vector<Vec3<float>> vertices;      // vertices positions
-    std::vector<Vec3<int>> indices;         // each Vec3 contain the indices of a triangle
-    std::vector<Vec3<float>> faceNormals;   // normal of the faces
+    void computeVertexNormals() {
+        // vertex -> faces in which the vertex is part of
+        std::vector<std::vector<int>> vToF(vertices.size());
+        for (std::size_t i=0; i < indices.size(); i++) {
+            vToF[indices[i][0]].push_back(i);
+            vToF[indices[i][1]].push_back(i);
+            vToF[indices[i][2]].push_back(i);
+        }
+
+        // compute vertex normals
+        for (std::size_t i = 0; i < vertices.size(); i++) {
+            const std::vector<int>& vertexFaces = vToF[i];
+            Vec3<float> vNormal(0.0, 0.0, 0.0);
+
+            for (int fIdx : vertexFaces)
+                vNormal = vNormal + faceNormals[fIdx];
+
+            if (vertexFaces.size() == 0 || vNormal.length() == 0) {
+                vNormal = vNormal + Vec3<float>(1.0, 1.0, 1.0);
+                vNormal.normalize();
+                verticeNormals.push_back(vNormal);
+                continue;
+            }
+
+            vNormal = vNormal / vertexFaces.size();
+            vNormal.normalize();
+            verticeNormals.push_back(vNormal);
+        }
+    }
+
+    std::vector<Vec3<float>> vertices;          // vertices positions
+    std::vector<Vec3<float>> verticeNormals;   // normal of the vertices
+    std::vector<Vec3<int>> indices;             // each Vec3 contain the indices of a triangle
+    std::vector<Vec3<float>> faceNormals;       // normal of the faces
     Vec3<float> centroid;
     Material material;
 };

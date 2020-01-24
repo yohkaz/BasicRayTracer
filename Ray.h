@@ -8,9 +8,14 @@ class Ray {
 public:
     class Hit {
         public:
-        int index;          // index of the triangle
-        float distance;     // distance of the hit
-        Vec3<float> normal; // normal of the triangle
+        int index;              // index of the triangle
+        float distance;         // distance of the hit
+        Vec3<float> faceNormal; // face normal of the triangle
+
+        // vertice normals
+        Vec3<float> vNormal0;
+        Vec3<float> vNormal1;
+        Vec3<float> vNormal2;
 
         // barycentric coordinates
         float b0;
@@ -52,6 +57,8 @@ public:
 
     //     return false;
     // }
+    const Vec3<float>& getOrigin() const { return origin; }
+    const Vec3<float>& getDirection() const { return direction; }
 
     bool intersectTriangle(const Vec3f &p0,
                             const Vec3f &p1,
@@ -65,14 +72,14 @@ public:
             return false;
         float inv_det = 1.0f / det;
         Vec3f tvec = origin - p0;
-        hit.b0 = dot(tvec, pvec) * inv_det;
+        hit.b1 = dot(tvec, pvec) * inv_det;
         Vec3f qvec = cross(tvec, edge1);
-        hit.b1 = dot(direction, qvec) * inv_det;
+        hit.b2 = dot(direction, qvec) * inv_det;
         hit.distance = dot(edge2, qvec) * inv_det;
-        hit.b2 = 1.f - hit.b0 - hit.b1;
-        if (hit.b0 < 0.f || hit.b0 > 1.f)
+        hit.b0 = 1.f - hit.b1 - hit.b2;
+        if (hit.b1 < 0.f || hit.b1 > 1.f)
             return false;
-        if (hit.b1 >= 0.f && hit.b0 + hit.b1 <= 1.f)
+        if (hit.b2 >= 0.f && hit.b1 + hit.b2 <= 1.f)
             return true;
         return false;
     }
@@ -81,6 +88,7 @@ public:
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
         const auto& faceNormals = model.getFaceNormals();
+        const auto& verticeNormals = model.getVerticeNormals();
 
         // Iterate through each triangle and check if there is an intersection
         bool intersected = false;
@@ -89,15 +97,16 @@ public:
             const Vec3<int>& triangle = indices[i];
             const Vec3<float>& n = faceNormals[i];
 
-            if (intersectTriangle(vertices[triangle[0]], vertices[triangle[1]], vertices[triangle[2]], n, currentHit)) {
-                currentHit.index = i;
-                currentHit.normal = n;
+            if (intersectTriangle(vertices[triangle[0]], vertices[triangle[1]], vertices[triangle[2]], n, currentHit)
+                    && (!intersected || currentHit.distance < hit.distance)) {
+                hit = currentHit;
+                hit.index = i;
+                hit.faceNormal = n;
+                hit.vNormal0 = verticeNormals[triangle[0]];
+                hit.vNormal1 = verticeNormals[triangle[1]];
+                hit.vNormal2 = verticeNormals[triangle[2]];
 
-                if (!intersected) {
-                    hit = currentHit;
-                    intersected = true;
-                } else if (currentHit.distance < hit.distance)
-                    hit = currentHit;
+                intersected = true;
             }
         }
 

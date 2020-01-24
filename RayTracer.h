@@ -43,8 +43,11 @@ private:
                 foundHit = true;
                 e = hit.distance;
                 Vec3<float> shading(0.f, 0.f, 0.f);
-                for (const auto& light: lights)
-                    shading += model.getMaterial().evaluateColorResponse(hit.normal, normalize(pixelPosition - light.getPosition()));
+                for (const auto& light: lights) {
+                    Vec3<float> lightDirection = normalize(light.getPosition() - (ray.getOrigin() + e*ray.getDirection()));
+                    Vec3<float> interpolatedNormal = hit.b0*hit.vNormal0 + hit.b1*hit.vNormal1 + hit.b2*hit.vNormal2;
+                    shading += model.getMaterial().evaluateColorResponse(interpolatedNormal, lightDirection);
+                }
                 pixelShading = shading;
             }
         }
