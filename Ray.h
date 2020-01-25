@@ -8,14 +8,10 @@ class Ray {
 public:
     class Hit {
         public:
-        int index;              // index of the triangle
-        float distance;         // distance of the hit
-        Vec3<float> faceNormal; // face normal of the triangle
-
-        // vertice normals
-        Vec3<float> vNormal0;
-        Vec3<float> vNormal1;
-        Vec3<float> vNormal2;
+        int index;                      // index of the corresponding triangle
+        float distance;                 // distance of the hit
+        Vec3<float> faceNormal;         // face normal of the corresponding triangle
+        Vec3<float> interpolatedNormal; // interpolated normal at that point
 
         // barycentric coordinates
         float b0;
@@ -77,7 +73,7 @@ public:
         hit.b2 = dot(direction, qvec) * inv_det;
         hit.distance = dot(edge2, qvec) * inv_det;
         hit.b0 = 1.f - hit.b1 - hit.b2;
-        if (hit.b1 < 0.f || hit.b1 > 1.f)
+        if (hit.b1 < 0.f || hit.b1 > 1.f || hit.distance < 0.f)
             return false;
         if (hit.b2 >= 0.f && hit.b1 + hit.b2 <= 1.f)
             return true;
@@ -102,12 +98,15 @@ public:
                 hit = currentHit;
                 hit.index = i;
                 hit.faceNormal = n;
-                hit.vNormal0 = vertexNormals[triangle[0]];
-                hit.vNormal1 = vertexNormals[triangle[1]];
-                hit.vNormal2 = vertexNormals[triangle[2]];
 
                 intersected = true;
             }
+        }
+
+        if (intersected) {
+            hit.interpolatedNormal = hit.b0*vertexNormals[indices[hit.index][0]]
+                                    + hit.b1*vertexNormals[indices[hit.index][1]]
+                                    + hit.b2*vertexNormals[indices[hit.index][2]];
         }
 
         return intersected;

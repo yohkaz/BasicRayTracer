@@ -9,11 +9,14 @@ class RayTracer {
 public:
     static void render(Image& img, Scene& scene) {
         const Vec3<float>& cameraPosition = scene.getCamera().getPosition();
+        const std::vector<Light>& lights = scene.getLights();
         scene.getCamera().printInfos();
         int width = img.getWidth();
         int height = img.getHeight();
 
-        // #pragma omp parallel for
+        std::cout << "Render.h" << std::endl;
+        // std::cout << "      .          ." << std::endl;
+        // std::cout << "      ";
         #pragma omp parallel for collapse(2)
         for(int i = 0; i < width; i++) {
             for(int j = 0; j < height; j++) {
@@ -23,34 +26,49 @@ public:
                 if (i == width-1 && j == height-1)
                     std::cout << "      LastPixelPosition:  " << pixelPosition << std::endl;
 
-                rayTrace(ray, pixelPosition, img(i, j), scene.getModels(), scene.getLights());
+                Ray::Hit hit;
+                int indexModel;
+                if(!rayTrace(ray, scene.getModels(), -1, hit, indexModel))
+                    continue;
+
+                const Model& modelHit = scene.getModels()[indexModel];
+                Vec3<float> shading(0.f, 0.f, 0.f);
+                for (const auto& light: lights) {
+                    Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
+                    Vec3<float> lightDirection = normalize(light.getPosition() - hitPosition);
+
+                    Ray shadowRay(hitPosition, lightDirection);
+                    Ray::Hit shadowHit;
+
+                    if(!rayTrace(shadowRay, scene.getModels(), indexModel, shadowHit, indexModel)
+                            || shadowHit.distance > dist(light.getPosition(), hitPosition))
+                        shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal, lightDirection);
+                }
+                img(i, j) = shading;
             }
         }
     }
 
 private:
-    static void rayTrace(const Ray& ray,
-                         const Vec3<float>& pixelPosition,
-                         Vec3<float>& pixelShading,
+    static bool rayTrace(const Ray& ray,
                          const std::vector<Model>& models,
-                         const std::vector<Light>& lights) {
+                         int modelToIgnore,
+                         Ray::Hit& hit, int& indexModel) {
         float e = -1;
         bool foundHit = false;
 
+        int i = 0;
+        Ray::Hit currentHit;
         for(const auto& model: models) {
-            Ray::Hit hit;
-            if(ray.intersect(model, hit) && (hit.distance < e || !foundHit)) {
+            if(modelToIgnore != i && ray.intersect(model, currentHit) && (currentHit.distance < e || !foundHit)) {
+                hit = currentHit;
                 foundHit = true;
                 e = hit.distance;
-                Vec3<float> shading(0.f, 0.f, 0.f);
-                for (const auto& light: lights) {
-                    Vec3<float> lightDirection = normalize(light.getPosition() - (ray.getOrigin() + e*ray.getDirection()));
-                    Vec3<float> interpolatedNormal = hit.b0*hit.vNormal0 + hit.b1*hit.vNormal1 + hit.b2*hit.vNormal2;
-                    shading += model.getMaterial().evaluateColorResponse(interpolatedNormal, lightDirection);
-                }
-                pixelShading = shading;
+                indexModel = i;
             }
+            i++;
         }
+        return foundHit;
     }
 };
 
