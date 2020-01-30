@@ -40,7 +40,8 @@ void TD2(int width, int height, std::string& filename) {
     // Add triangle to scene
     scene.add(sphere);
 
-    RayTracer::render(img, scene);
+    RayTracer rayTracer;
+    rayTracer.render(img, scene);
     img.savePPM(filename);
 }
 
@@ -68,7 +69,7 @@ void TD3(int width, int height, std::string& filename) {
     scene.add(plane);
 
     // Define a face model
-    Model face("../models/example.off");
+    Model face("../models/example_lowres.off");
     face.setMaterial(Material(Vec3<float>(0.8, 0.4, 0), 1.f));
     // Add face to scene
     scene.add(face);
@@ -78,9 +79,11 @@ void TD3(int width, int height, std::string& filename) {
     Vec3<float> lightPos = Vec3<float>(2.f, 2.f, -2.25f);
     Vec3<float> lightColor = Vec3<float>(1.f, 1.f, 1.f);
     float lightIntensity = 1.f;
-    scene.add(PointLight(lightPos, lightColor, lightIntensity));
+    PointLight pointLight(lightPos, lightColor, lightIntensity);
+    scene.add(pointLight);
 
-    RayTracer::render(img, scene);
+    RayTracer rayTracer;
+    rayTracer.render(img, scene);
     img.savePPM(filename);
 }
 

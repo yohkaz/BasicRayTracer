@@ -20,6 +20,7 @@ public:
         up = normalize(cross(n, right));
 
         topLeftPixelPosition = ((position - n)*distanceToPlane) - right*(width/2.0f) + up*(height/2.0f);
+        printInfos();
     }
 
     // Set functions
