@@ -8,6 +8,7 @@ class Ray {
 public:
     class Hit {
         public:
+        Hit() : index(-1), distance(0), b0(0), b1(0), b2(0) {}
         int index;                      // index of the corresponding triangle
         float distance;                 // distance of the hit
         Vec3<float> faceNormal;         // face normal of the corresponding triangle
@@ -104,9 +105,9 @@ public:
         }
 
         if (intersected) {
-            hit.interpolatedNormal = hit.b0*vertexNormals[indices[hit.index][0]]
+            hit.interpolatedNormal = normalize(hit.b0*vertexNormals[indices[hit.index][0]]
                                     + hit.b1*vertexNormals[indices[hit.index][1]]
-                                    + hit.b2*vertexNormals[indices[hit.index][2]];
+                                    + hit.b2*vertexNormals[indices[hit.index][2]]);
         }
 
         return intersected;

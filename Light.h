@@ -8,12 +8,15 @@ public:
     Light(const Vec3<float>& pos, const Vec3<float>& col, float intensity) :
         position(pos), color(col), intensity(intensity) {}
 
-    const Vec3<float>& getPosition() const { return position; }
+    // const Vec3<float>& getPosition() const { return position; }
+    virtual Vec3<float> getPosition() const { return position; }
     const Vec3<float>& getColor() const { return color; }
     const float& getIntensity() const { return intensity; }
 
-private:
+protected:
     Vec3<float> position;
+
+private:
     Vec3<float> color;
     float intensity;
 };

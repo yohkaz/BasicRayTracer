@@ -7,10 +7,14 @@
 
 class RayTracer {
 public:
-    RayTracer() : RayTracer(true, true, 4) {}
+    RayTracer() : RayTracer(false, false, 4) {}
     RayTracer(bool shadow, bool antiAliasing, int antiAliasingRes)
-            : enableShadow(shadow), enableAA(antiAliasing), aaRes(antiAliasingRes) {
-        printInfos();
+            : shadow(shadow), antialiasing(antiAliasing), aaRes(antiAliasingRes) {}
+
+    void enableShadow() { shadow = true; }
+    void enableAntiAliasing(int res) {
+        antialiasing = true;
+        aaRes = res;
     }
 
     void render(Image& img, const Scene& scene) {
@@ -25,14 +29,20 @@ public:
                 Vec3<float> pixelPosition = scene.getCamera().computePixelPosition(i / (float) width, j / (float) height);
                 Vec3<float> shading;
 
-                if (enableAA && !antiAliasing(i, j, img, scene, shading))
+                if (antialiasing && !antiAliasing(i, j, img, scene, shading))
                     continue;
-                else if (!enableAA && !computePixelShading(pixelPosition, scene, shading))
+                else if (!antialiasing && !computePixelShading(pixelPosition, scene, shading))
                     continue;
 
                 img(i, j) = shading;
             }
         }
+    }
+
+    void printInfos() {
+        std::cout << "RayTracer.h" << std::endl;
+        std::cout << "      Shadow:         " << (shadow == 0 ? "OFF" : "ON") << std::endl;
+        std::cout << "      Anti-Aliasing:  " << (antialiasing == 0 ? "OFF" : "ON") << std::endl;
     }
 
 private:
@@ -71,14 +81,19 @@ private:
         shading = Vec3<float>(0.f, 0.f, 0.f);
         for (const auto& light: lights) {
             Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
-            Vec3<float> lightDirection = normalize(light->getPosition() - hitPosition);
+            Vec3<float> lightPos = light->getPosition();
+            Vec3<float> lightDirection = normalize(lightPos - hitPosition);
 
             Ray shadowRay(hitPosition, lightDirection);
             Ray::Hit shadowHit;
 
-            if(!enableShadow || !rayTrace(shadowRay, scene.getModels(), indexModel, shadowHit, indexModel)
-                    || shadowHit.distance > dist(light->getPosition(), hitPosition))
-                shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal, lightDirection*light->getIntensity());
+            if(!shadow || !rayTrace(shadowRay, scene.getModels(), indexModel, shadowHit, indexModel)
+                    || shadowHit.distance > dist(lightPos, hitPosition)) {
+                // shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal, lightDirection*light->getIntensity());
+                shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal,
+                                                                        lightDirection,
+                                                                        normalize(cameraPosition - hitPosition));
+            }
         }
 
         return true;
@@ -90,14 +105,16 @@ private:
         shading = Vec3<float>(0.f, 0.f, 0.f);
 
         #pragma omp parallel for collapse(2)
-        for (int ki = -(aaRes/2); ki < aaRes/2; ki++) {
-            for (int kj = -(aaRes/2); kj < aaRes/2; kj++) {
+        // for (int ki = -(aaRes/2); ki < aaRes/2; ki++) {
+        //     for (int kj = -(aaRes/2); kj < aaRes/2; kj++) {
+        for (int ki = 0; ki < aaRes; ki++) {
+            for (int kj = 0; kj < aaRes; kj++) {
                 Vec3<float> currentShading;
                 Vec3<float> pixelPosition = scene.getCamera().computePixelPosition(((i*aaRes)+ki) / (float) (img.getWidth()*aaRes), ((j*aaRes)+kj) / (float) (img.getHeight()*aaRes));
                 if (computePixelShading(pixelPosition, scene, currentShading))
                     result = true;
                 else
-                    continue;
+                    currentShading = img(i, j);
                 shading += currentShading;
                 counter++;
             }
@@ -107,14 +124,8 @@ private:
         return result;
     }
 
-    void printInfos() {
-        std::cout << "RayTracer.h" << std::endl;
-        std::cout << "      Shadow:         " << (enableShadow == 0 ? "OFF" : "ON") << std::endl;
-        std::cout << "      Anti-Aliasing:  " << (enableAA == 0 ? "OFF" : "ON") << std::endl;
-    }
-
-    bool enableShadow;
-    bool enableAA;      // Anti-aliasing
+    bool shadow;
+    bool antialiasing;      // Anti-aliasing
     int aaRes;          // Anti-aliasing resolution
 };
 

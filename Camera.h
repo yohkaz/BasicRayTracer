@@ -4,7 +4,7 @@
 #include <math.h>
 #include "Vec3.h"
 
-#define PI 3.14159265
+#define PI 3.14159265f
 
 class Camera {
 public:
