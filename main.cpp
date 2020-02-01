@@ -1,8 +1,8 @@
-#include "Image.h"
-#include "Scene.h"
-#include "RayTracer.h"
-#include "PointLight.h"
-#include "AreaLight.h"
+#include "src/Image.h"
+#include "src/Scene.h"
+#include "src/RayTracer.h"
+#include "src/PointLight.h"
+#include "src/AreaLight.h"
 
 void TD1(int width, int height, std::string& filename){
     // Blue color
@@ -70,7 +70,7 @@ void TD3(int width, int height, std::string& filename) {
     scene.add(plane);
 
     // Define a face model
-    Model face("../models/example_lowres.off");
+    Model face("../models/face_lowres.off");
     face.setMaterial(Material(Vec3<float>(0.8, 0.4, 0), 1.f));
     // Add face to scene
     scene.add(face);
@@ -119,7 +119,7 @@ void TD4(int width, int height, std::string& filename) {
     scene.add(plane);
 
     // Define a face model
-    Model face("../models/example.off");
+    Model face("../models/face_lowres.off");
     face.setMaterial(Material(Vec3<float>(0.8, 0.6, 0.3), 1.f, 0.3f));
     // Add face to scene
     scene.add(face);
