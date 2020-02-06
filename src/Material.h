@@ -2,6 +2,7 @@
 #define MATERIAL_H
 
 #include "Vec3.h"
+#include "Worley.h"
 
 class Material {
 public:
@@ -9,13 +10,13 @@ public:
     Material(const Vec3<float>& color,
              float kd,
              float alpha = 0.f,
-             const Vec3<float>& f0 = Vec3<float>(0.56f, 0.57f, 0.58f)): color(color), kd(kd), alpha(alpha), f0(f0) {}
+             float metallicness = 0.5f): color(color), kd(kd), alpha(alpha), metallicness(metallicness), noise(nullptr) {}
     Vec3<float> evaluateColorResponse(const Vec3<float>& normal, const Vec3<float>& wi) const {
         float cosAngle = std::max(dot(normal, wi), 0.f);
         return color*kd*cosAngle;
     }
 
-    Vec3<float> evaluateColorResponse(const Vec3<float>& normal, const Vec3<float>& wi, const Vec3<float>& wo) const {
+    Vec3<float> evaluateColorResponse(const Vec3<float>& p, const Vec3<float>& normal, const Vec3<float>& wi, const Vec3<float>& wo) const {
         float cosAngle = std::max(dot(normal, wi), 0.f);
         Vec3<float> wh = normalize(wi + wo);
         float NdotH = dot(normal, wh);
@@ -23,8 +24,15 @@ public:
         float NdotO = dot(normal, wo);
         float IdotH = dot(wi, wh);
 
+        float noiseValue = noise ? noise->eval(p) : 1.f;
+
         // GGX Distribution
+        Vec3<float> f0 = metallicness*Vec3<float>(0.91f, 0.92f, 0.92f);
         float a2 = alpha*alpha;
+        if (noise) {
+            a2 *= noiseValue*noiseValue;
+            f0 *= noiseValue;
+        }
         float denominatorGGX = (1.f + (a2 - 1.f)*(NdotH*NdotH));
         float dGGX = a2 / (PI * denominatorGGX * denominatorGGX);
 
@@ -45,11 +53,16 @@ public:
         return cosAngle*(fs + fd);
     }
 
+    void useWorleyNoise(const Worley* worley) {
+        noise = worley;
+    }
+
 private:
     Vec3<float> color;
-    float kd;       // diffuse coefficient
-    float alpha;    // roughness
-    Vec3<float> f0;       // metallicness
+    float kd;           // diffuse coefficient
+    float alpha;        // roughness
+    float metallicness;
+    const Worley* noise;
 };
 
 #endif

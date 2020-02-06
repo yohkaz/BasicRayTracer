@@ -21,6 +21,9 @@ public:
 	Vec3<float>& operator() (size_t x, size_t y) { return img[x + y*width]; }
 
     void savePPM(const std::string& filename) {
+        std::cout << "Image.h" << std::endl;
+        std::cout << "      Output file: " << filename << std::endl;
+
         std::ofstream PPMfile;
         PPMfile.open(filename);
         PPMfile << "P3" << std::endl;
@@ -51,6 +54,12 @@ public:
 
     int getWidth() const { return width; }
     int getHeight() const { return height; }
+
+    void printInfos() const {
+        std::cout << "Image.h" << std::endl;
+        std::cout << "      Width:       " << width << std::endl;
+        std::cout << "      Height:      " << height << std::endl;
+    }
 
 private:
     // 3 floats value per pixel (RGB)

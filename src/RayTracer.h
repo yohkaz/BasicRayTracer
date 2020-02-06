@@ -90,7 +90,8 @@ private:
             if(!shadow || !rayTrace(shadowRay, scene.getModels(), indexModel, shadowHit, indexModel)
                     || shadowHit.distance > dist(lightPos, hitPosition)) {
                 // shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal, lightDirection*light->getIntensity());
-                shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal,
+                shading += modelHit.getMaterial().evaluateColorResponse(hitPosition,
+                                                                        hit.interpolatedNormal,
                                                                         lightDirection,
                                                                         normalize(cameraPosition - hitPosition));
             }

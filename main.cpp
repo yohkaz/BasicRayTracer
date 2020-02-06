@@ -97,15 +97,19 @@ void TD3(int width, int height, std::string& filename) {
 
 void TD4(int width, int height, std::string& filename) {
     // Blue color
-    Vec3<float> blue(0, 0, 1);
+    Vec3<float> blue(0.15, 0.15, 0.15);
     // White color
-    Vec3<float> white(1, 1, 1);
+    Vec3<float> white(0, 0, 0);
 
     // Define our image
     Image img(width, height);
+    img.printInfos();
     img.fillBackgroundY(white, blue);
     // Define our Scene
     Scene scene;
+
+    // Define Worley noise
+    Worley worley(200, 8.f, 8.f, 8.f);
 
     // Define a plane model
     std::vector<Vec3<float>> plane_vertices = {Vec3<float>(1.5, -0.5, -1.5),
@@ -114,13 +118,17 @@ void TD4(int width, int height, std::string& filename) {
                                                   Vec3<float>(1.5, -0.5, -5.0)};
     std::vector<Vec3<int>> plane_indices = {Vec3<int>(0, 2, 1), Vec3<int>(0, 3, 2)};
     Model plane(plane_vertices, plane_indices);
-    plane.setMaterial(Material(Vec3<float>(0.6, 0.0, 0.0), 1.f, 1.f));
+    Material planeMaterial(Vec3<float>(0.6, 0.0, 0.0), 1.f, 1.f);
+    // planeMaterial.useWorleyNoise(&worley);
+    plane.setMaterial(planeMaterial);
     // Add plane to scene
     scene.add(plane);
 
     // Define a face model
     Model face("../models/face_lowres.off");
-    face.setMaterial(Material(Vec3<float>(0.8, 0.6, 0.3), 1.f, 0.3f));
+    Material faceMaterial(Vec3<float>(0.8, 0.6, 0.3), 0.8f, 0.40f);
+    // faceMaterial.useWorleyNoise(&worley);
+    face.setMaterial(faceMaterial);
     // Add face to scene
     scene.add(face);
 
@@ -158,15 +166,11 @@ void parseArguments(int argc, char *argv[], int& width, int& height, std::string
             i++;
         }
     }
-    std::cout << "main.cpp" << std::endl;
-    std::cout << "      Width:       " << width << std::endl;
-    std::cout << "      Height:      " << height << std::endl;
-    std::cout << "      Output file: " << filename << std::endl;
 }
 
 int main(int argc, char *argv[]) {
-    int width = 600;
-    int height = 400;
+    int width = 900;
+    int height = 600;
     std::string filename = "default.ppm";
     parseArguments(argc, argv, width, height, filename);
 
