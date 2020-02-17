@@ -3,6 +3,7 @@
 
 #include "Vec3.h"
 #include "Worley.h"
+#include "RGBHSV.h"
 
 class Material {
 public:
@@ -24,7 +25,7 @@ public:
         float NdotO = dot(normal, wo);
         float IdotH = dot(wi, wh);
 
-        float noiseValue = noise ? noise->eval(p) : 1.f;
+        float noiseValue = noise ? 1.f + noise->eval(p) : 1.f;
 
         // GGX Distribution
         Vec3<float> f0 = metallicness*Vec3<float>(0.91f, 0.92f, 0.92f);
@@ -48,7 +49,13 @@ public:
         // Specular BRDF
         Vec3<float> fs = (dGGX*fGGX*gGGX) / (4 * NdotI * NdotO);
         // Diffuse BRDF
-        Vec3<float> fd = color*kd;
+        Vec3<float> fd;
+        if (noise) {
+            Vec3<float> noisyColor(color[0]*noiseValue, color[1]*noiseValue, color[2]*noiseValue);
+            fd = noisyColor*kd;
+        } else {
+            fd = color*kd;
+        }
 
         return cosAngle*(fs + fd);
     }

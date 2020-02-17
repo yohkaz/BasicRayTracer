@@ -109,7 +109,7 @@ void TD4(int width, int height, std::string& filename) {
     Scene scene;
 
     // Define Worley noise
-    Worley worley(200, 8.f, 8.f, 8.f);
+    Worley worley(60, 2.f, 2.f, 2.f);
 
     // Define a plane model
     std::vector<Vec3<float>> plane_vertices = {Vec3<float>(1.5, -0.5, -1.5),
@@ -119,7 +119,7 @@ void TD4(int width, int height, std::string& filename) {
     std::vector<Vec3<int>> plane_indices = {Vec3<int>(0, 2, 1), Vec3<int>(0, 3, 2)};
     Model plane(plane_vertices, plane_indices);
     Material planeMaterial(Vec3<float>(0.6, 0.0, 0.0), 1.f, 1.f);
-    // planeMaterial.useWorleyNoise(&worley);
+    planeMaterial.useWorleyNoise(&worley);
     plane.setMaterial(planeMaterial);
     // Add plane to scene
     scene.add(plane);
@@ -127,7 +127,7 @@ void TD4(int width, int height, std::string& filename) {
     // Define a face model
     Model face("../models/face_lowres.off");
     Material faceMaterial(Vec3<float>(0.8, 0.6, 0.3), 0.8f, 0.40f);
-    // faceMaterial.useWorleyNoise(&worley);
+    faceMaterial.useWorleyNoise(&worley);
     face.setMaterial(faceMaterial);
     // Add face to scene
     scene.add(face);
