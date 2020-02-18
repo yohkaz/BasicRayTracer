@@ -22,38 +22,6 @@ public:
 
     Ray(const Vec3<float>& origin, const Vec3<float>& direction): origin(origin), direction(direction), epsilon(0.00001f) {}
 
-    // bool intersectTriangle(const Vec3<float>& p0,
-    //                         const Vec3<float>& p1,
-    //                         const Vec3<float>& p2,
-    //                         const Vec3<float>& n,
-    //                         Hit& hit) const {
-    //     Vec3<float> e1 = p1 - p0; // e0
-    //     Vec3<float> e2 = p2 - p0; // e1
-
-    //     Vec3<float> q = cross(direction, e2);
-    //     float a = dot(e1, q);
-    //     if (std::abs(a) < epsilon)
-    //         return false;
-
-    //     Vec3<float> s = (origin - p0) / a;
-    //     Vec3<float> r = cross(s, e1);
-    //     float b0 = dot(s, q);
-    //     float b1 = dot(r, direction);
-    //     float b2 = 1 - b0 - b1;
-    //     if (b0 < 0 || b1 < 0 || b2 < 0)
-    //         return false;
-
-    //     float distance = dot(e2, r);
-    //     if (distance >= 0) {
-    //         hit.distance = distance;
-    //         hit.b0 = b0;
-    //         hit.b1 = b1;
-    //         hit.b2 = b2;
-    //         return true;
-    //     }
-
-    //     return false;
-    // }
     const Vec3<float>& getOrigin() const { return origin; }
     const Vec3<float>& getDirection() const { return direction; }
 
@@ -81,11 +49,37 @@ public:
         return false;
     }
 
+    bool intersectAABB(const AABB& aabb, Hit& hit) const {
+        Vec3<float> tMin = (aabb.getMinBound() - origin) / direction;
+        Vec3<float> tMax = (aabb.getMaxBound() - origin) / direction;
+
+        // swap if needed
+        for (int i = 0; i < 3; i++) {
+            if (tMin[i] > tMax[i])
+                std::swap(tMin[i], tMax[i]);
+        }
+
+        float tFirstPoint = (tMin[0] > tMin[1]) ? tMin[0] : tMin[1];
+        float tSecondPoint = (tMax[0] < tMax[1]) ? tMax[0] : tMax[1];
+
+        if (tFirstPoint > tMax[2] || tMin[2] > tSecondPoint)
+            return false;
+
+        if (tMin[2] > tFirstPoint) tFirstPoint = tMin[2];
+        if (tMax[2] < tSecondPoint) tSecondPoint = tMax[2];
+
+        return true;
+    }
+
     bool intersect(const Model& model, Hit& hit) const {
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
         const auto& faceNormals = model.getFaceNormals();
         const auto& vertexNormals = model.getVertexNormals();
+
+        // Iterate through each AABB and check if there is an intersection
+        if (!intersectAABB(model.getAABB(), hit))
+            return false;
 
         // Iterate through each triangle and check if there is an intersection
         bool intersected = false;

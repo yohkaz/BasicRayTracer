@@ -6,6 +6,7 @@
 #include <sstream>
 #include "Vec3.h"
 #include "Material.h"
+#include "AABB.h"
 
 class Model {
 public:
@@ -27,12 +28,13 @@ public:
             loadOFF(file);
         }
 
+        aabb.compute(vertices);
         computeFaceNormals();
         computeVertexNormals();
     }
 
     Model(std::vector<Vec3<float>> vertices, std::vector<Vec3<int>> indices):
-            vertices(vertices), indices(indices) {
+            vertices(vertices), indices(indices), aabb(vertices) {
         computeFaceNormals();
         computeVertexNormals();
     }
@@ -45,6 +47,7 @@ public:
     const std::vector<Vec3<int>>& getIndices() const { return indices; }
     const std::vector<Vec3<float>>& getFaceNormals() const { return faceNormals; }
     const std::vector<Vec3<float>>& getVertexNormals() const { return vertexNormals; }
+    const AABB& getAABB() const { return aabb; }
     const Material& getMaterial() const { return material; }
 
 private:
@@ -168,6 +171,7 @@ private:
     std::vector<Vec3<float>> faceNormals;       // normal of the faces
     Vec3<float> centroid;
     Material material;
+    AABB aabb;
 };
 
 #endif
