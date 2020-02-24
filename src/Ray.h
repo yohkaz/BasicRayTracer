@@ -18,6 +18,10 @@ public:
         float b0;
         float b1;
         float b2;
+
+        // AABB info
+        float dPoint1;
+        float dPoint2;
     };
 
     Ray(const Vec3<float>& origin, const Vec3<float>& direction): origin(origin), direction(direction), epsilon(0.00001f) {}
@@ -67,6 +71,9 @@ public:
 
         if (tMin[2] > tFirstPoint) tFirstPoint = tMin[2];
         if (tMax[2] < tSecondPoint) tSecondPoint = tMax[2];
+
+        hit.dPoint1 = tFirstPoint;
+        hit.dPoint2 = tSecondPoint;
 
         return true;
     }

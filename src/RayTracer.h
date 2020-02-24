@@ -126,7 +126,7 @@ private:
     }
 
     bool shadow;
-    bool antialiasing;      // Anti-aliasing
+    bool antialiasing;  // Anti-aliasing
     int aaRes;          // Anti-aliasing resolution
 };
 

@@ -1,11 +1,12 @@
 #ifndef AABB_H
 #define AABB_H
 
-#include "Model.h"
-
 class AABB {
 public:
     AABB() = default;
+
+    AABB(const Vec3<float>& minBound, const Vec3<float>& maxBound):
+        minBound(minBound), maxBound(maxBound) {}
 
     AABB(const std::vector<Vec3<float>>& vertices) {
         compute(vertices);
