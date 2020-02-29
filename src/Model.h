@@ -33,7 +33,7 @@ public:
         computeVertexNormals();
     }
 
-    Model(std::vector<Vec3<float>> vertices, std::vector<Vec3<int>> indices):
+    Model(const std::vector<Vec3<float>>& vertices, const std::vector<Vec3<int>>& indices):
             vertices(vertices), indices(indices), aabb(vertices) {
         computeFaceNormals();
         computeVertexNormals();

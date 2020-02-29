@@ -8,7 +8,7 @@ class Ray {
 public:
     class Hit {
         public:
-        Hit() : index(-1), distance(0), b0(0), b1(0), b2(0) {}
+        Hit() : index(-1), distance(0), b0(0), b1(0), b2(0), dPoint1(0), dPoint2(0) {}
         int index;                      // index of the corresponding triangle
         float distance;                 // distance of the hit
         Vec3<float> faceNormal;         // face normal of the corresponding triangle
@@ -78,20 +78,29 @@ public:
         return true;
     }
 
-    bool intersect(const Model& model, Hit& hit) const {
+    bool intersect(const Model& model, Hit& hit, const std::vector<int>& relevantIndices = std::vector<int>()) const {
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
         const auto& faceNormals = model.getFaceNormals();
         const auto& vertexNormals = model.getVertexNormals();
 
-        // Iterate through each AABB and check if there is an intersection
+        // Check if there is an intersection with the AABB
         if (!intersectAABB(model.getAABB(), hit))
             return false;
 
         // Iterate through each triangle and check if there is an intersection
         bool intersected = false;
         Hit currentHit;
+
+        std::size_t j = 0;
         for (std::size_t i = 0; i < indices.size(); i++) {
+            if (relevantIndices.size() > 0) {
+                if (j == relevantIndices.size())
+                    break;
+                else
+                    i = relevantIndices[j++];
+            }
+
             const Vec3<int>& triangle = indices[i];
             const Vec3<float>& n = faceNormals[i];
 

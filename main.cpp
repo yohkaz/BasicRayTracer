@@ -119,7 +119,7 @@ void TD4(int width, int height, std::string& filename) {
     std::vector<Vec3<int>> plane_indices = {Vec3<int>(0, 2, 1), Vec3<int>(0, 3, 2)};
     Model plane(plane_vertices, plane_indices);
     Material planeMaterial(Vec3<float>(0.6, 0.0, 0.0), 1.f, 1.f);
-    planeMaterial.useWorleyNoise(&worley);
+    // planeMaterial.useWorleyNoise(&worley);
     plane.setMaterial(planeMaterial);
     // Add plane to scene
     scene.add(plane);
@@ -127,7 +127,7 @@ void TD4(int width, int height, std::string& filename) {
     // Define a face model
     Model face("../models/face_lowres.off");
     Material faceMaterial(Vec3<float>(0.8, 0.6, 0.3), 0.8f, 0.40f);
-    faceMaterial.useWorleyNoise(&worley);
+    // faceMaterial.useWorleyNoise(&worley);
     face.setMaterial(faceMaterial);
     // Add face to scene
     scene.add(face);
@@ -146,6 +146,56 @@ void TD4(int width, int height, std::string& filename) {
     RayTracer rayTracer;
     rayTracer.enableShadow();
     rayTracer.enableAntiAliasing(4);
+    rayTracer.printInfos();
+    rayTracer.render(img, scene);
+    img.savePPM(filename);
+}
+
+void TD5(int width, int height, std::string& filename) {
+    // Blue color
+    Vec3<float> blue(0.15, 0.15, 0.15);
+    // White color
+    Vec3<float> white(0, 0, 0);
+
+    // Define our image
+    Image img(width, height);
+    img.printInfos();
+    img.fillBackgroundY(white, blue);
+    // Define our Scene
+    Scene scene;
+
+    // Define a plane model
+    std::vector<Vec3<float>> plane_vertices = {Vec3<float>(1.5, -0.5, -1.5),
+                                                  Vec3<float>(-1.5, -0.5, -1.5),
+                                                  Vec3<float>(-1.5, -0.5, -5.0),
+                                                  Vec3<float>(1.5, -0.5, -5.0)};
+    std::vector<Vec3<int>> plane_indices = {Vec3<int>(0, 2, 1), Vec3<int>(0, 3, 2)};
+    Model plane(plane_vertices, plane_indices);
+    Material planeMaterial(Vec3<float>(0.6, 0.0, 0.0), 1.f, 1.f);
+    plane.setMaterial(planeMaterial);
+    // Add plane to scene
+    scene.add(plane);
+
+    // Define a face model
+    Model face("../models/face.off");
+    Material faceMaterial(Vec3<float>(0.8, 0.6, 0.3), 0.8f, 0.40f);
+    face.setMaterial(faceMaterial);
+    // Add face to scene
+    scene.add(face);
+
+    // Define a light
+    Vec3<float> lightPos = Vec3<float>(2.f, 2.f, -2.25f);
+    Vec3<float> lightColor = Vec3<float>(1.f, 1.f, 1.f);
+    float lightIntensity = 1.f;
+
+    Vec3<float> lightDir = Vec3<float>(-1.f, -1.f, 0.f);
+    AreaLight areaLight(lightPos, lightColor, lightIntensity, lightDir, 0.4f);
+    scene.add(areaLight);
+
+    RayTracer rayTracer;
+    rayTracer.enableShadow();
+    rayTracer.enableAntiAliasing(4);
+    rayTracer.enableBVH();
     rayTracer.printInfos();
     rayTracer.render(img, scene);
     img.savePPM(filename);
@@ -177,7 +227,8 @@ int main(int argc, char *argv[]) {
     // TD1(width, height, filename);
     // TD2(width, height, filename);
     // TD3(width, height, filename);
-    TD4(width, height, filename);
-    
+    // TD4(width, height, filename);
+    TD5(width, height, filename);
+
     return 0;
 }

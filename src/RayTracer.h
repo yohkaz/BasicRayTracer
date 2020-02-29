@@ -4,25 +4,28 @@
 #include "Image.h"
 #include "Scene.h"
 #include "Ray.h"
+#include "BVH.h"
 
 class RayTracer {
 public:
-    RayTracer() : RayTracer(false, false, 4) {}
-    RayTracer(bool shadow, bool antiAliasing, int antiAliasingRes)
-            : shadow(shadow), antialiasing(antiAliasing), aaRes(antiAliasingRes) {}
+    RayTracer() : RayTracer(false, false, false, 4) {}
+    RayTracer(bool shadow, bool antiAliasing, bool bvh, int antiAliasingRes)
+            : shadow(shadow), antialiasing(antiAliasing), bvh(bvh), aaRes(antiAliasingRes) {}
 
     void enableShadow() { shadow = true; }
     void enableAntiAliasing(int res) {
         antialiasing = true;
         aaRes = res;
     }
+    void enableBVH() { bvh = true; }
 
     void render(Image& img, const Scene& scene) {
         int width = img.getWidth();
         int height = img.getHeight();
 
-        // std::cout << "      .          ." << std::endl;
-        // std::cout << "      ";
+        if (bvh)
+            pBvh = new BVH(scene.getModels());
+
         #pragma omp parallel for collapse(2)
         for(int i = 0; i < width; i++) {
             for(int j = 0; j < height; j++) {
@@ -43,27 +46,43 @@ public:
         std::cout << "RayTracer.h" << std::endl;
         std::cout << "      Shadow:         " << (shadow == 0 ? "OFF" : "ON") << std::endl;
         std::cout << "      Anti-Aliasing:  " << (antialiasing == 0 ? "OFF" : "ON") << std::endl;
+        std::cout << "      BVH:            " << (bvh == 0 ? "OFF" : "ON") << std::endl;
     }
 
 private:
     bool rayTrace(const Ray& ray,
-                         const std::vector<Model*>& models,
-                         int modelToIgnore,
-                         Ray::Hit& hit, int& indexModel) {
+                  const std::vector<Model*>& models,
+                  Model* modelToIgnore,
+                  Ray::Hit& hit, Model** modelHit) {
+        std::map<int, std::vector<int>> indices;
+        if (bvh && !pBvh->intersect(ray, hit, indices))
+            return false;
+
         float e = -1;
         bool foundHit = false;
-
-        int i = 0;
         Ray::Hit currentHit;
-        for(const auto& model: models) {
-            if(modelToIgnore != i && ray.intersect(*model, currentHit) && (currentHit.distance < e || !foundHit)) {
+
+        auto it = indices.begin();
+        for (std::size_t i = 0; i < models.size(); i++) {
+            std::vector<int> relevantIndices;
+            if (bvh) {
+                if (it == indices.end())
+                    break;
+                i = it->first;
+                relevantIndices = it->second;
+                it++;
+            }
+
+            Model* model = models[i];
+            if(modelToIgnore != model && ray.intersect(*model, currentHit, relevantIndices) && (currentHit.distance < e || !foundHit)) {
                 hit = currentHit;
                 foundHit = true;
                 e = hit.distance;
-                indexModel = i;
+                if (modelHit)
+                    *modelHit = model;
             }
-            i++;
         }
+
         return foundHit;
     }
 
@@ -73,11 +92,11 @@ private:
         Ray ray(cameraPosition, normalize(pixelPosition - cameraPosition));
 
         Ray::Hit hit;
-        int indexModel;
-        if(!rayTrace(ray, scene.getModels(), -1, hit, indexModel))
+        Model* p_modelHit = nullptr;
+        if (!rayTrace(ray, scene.getModels(), nullptr, hit, &p_modelHit))
             return false;
 
-        const Model& modelHit = *scene.getModels()[indexModel];
+        const Model& modelHit = *p_modelHit;
         shading = Vec3<float>(0.f, 0.f, 0.f);
         for (const auto& light: lights) {
             Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
@@ -87,7 +106,7 @@ private:
             Ray shadowRay(hitPosition, lightDirection);
             Ray::Hit shadowHit;
 
-            if(!shadow || !rayTrace(shadowRay, scene.getModels(), indexModel, shadowHit, indexModel)
+            if(!shadow || !rayTrace(shadowRay, scene.getModels(), p_modelHit, shadowHit, nullptr)
                     || shadowHit.distance > dist(lightPos, hitPosition)) {
                 // shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal, lightDirection*light->getIntensity());
                 shading += modelHit.getMaterial().evaluateColorResponse(hitPosition,
@@ -125,9 +144,12 @@ private:
         return result;
     }
 
-    bool shadow;
+    bool shadow;        // Shadows
     bool antialiasing;  // Anti-aliasing
+    bool bvh;           // BVH acceleration
+
     int aaRes;          // Anti-aliasing resolution
+    BVH* pBvh;
 };
 
 #endif
