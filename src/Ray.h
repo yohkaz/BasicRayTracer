@@ -1,6 +1,7 @@
 #ifndef RAY_H
 #define RAY_H
 
+#include <algorithm>
 #include "Vec3.h"
 #include "Model.h"
 
@@ -93,7 +94,7 @@ public:
         Hit currentHit;
 
         std::size_t j = 0;
-        for (std::size_t i = 0; i < indices.size(); i++) {
+        for (std::size_t i = 0; i < indices.size() + j; i++) {
             if (relevantIndices.size() > 0) {
                 if (j == relevantIndices.size())
                     break;

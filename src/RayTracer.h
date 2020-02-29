@@ -63,7 +63,7 @@ private:
         Ray::Hit currentHit;
 
         auto it = indices.begin();
-        for (std::size_t i = 0; i < models.size(); i++) {
+        for (std::size_t i = 0; i < models.size() + indices.size(); i++) {
             std::vector<int> relevantIndices;
             if (bvh) {
                 if (it == indices.end())
@@ -96,7 +96,6 @@ private:
         if (!rayTrace(ray, scene.getModels(), nullptr, hit, &p_modelHit))
             return false;
 
-        const Model& modelHit = *p_modelHit;
         shading = Vec3<float>(0.f, 0.f, 0.f);
         for (const auto& light: lights) {
             Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
@@ -109,7 +108,7 @@ private:
             if(!shadow || !rayTrace(shadowRay, scene.getModels(), p_modelHit, shadowHit, nullptr)
                     || shadowHit.distance > dist(lightPos, hitPosition)) {
                 // shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal, lightDirection*light->getIntensity());
-                shading += modelHit.getMaterial().evaluateColorResponse(hitPosition,
+                shading += p_modelHit->getMaterial().evaluateColorResponse(hitPosition,
                                                                         hit.interpolatedNormal,
                                                                         lightDirection,
                                                                         normalize(cameraPosition - hitPosition));
