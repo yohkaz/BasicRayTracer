@@ -25,7 +25,12 @@ public:
         float dPoint2;
     };
 
-    Ray(const Vec3<float>& origin, const Vec3<float>& direction): origin(origin), direction(direction), epsilon(0.00001f) {}
+    Ray(const Vec3<float>& origin, const Vec3<float>& direction,
+        const Model* m = nullptr, int index = -1): origin(origin),
+                                                   direction(direction),
+                                                   epsilon(0.00001f),
+                                                   originModel(m),
+                                                   originTriangleIndex(index) {}
 
     const Vec3<float>& getOrigin() const { return origin; }
     const Vec3<float>& getDirection() const { return direction; }
@@ -106,6 +111,7 @@ public:
             const Vec3<float>& n = faceNormals[i];
 
             if (intersectTriangle(vertices[triangle[0]], vertices[triangle[1]], vertices[triangle[2]], n, currentHit)
+                    && (originModel != &model || originTriangleIndex != (int) i)
                     && (!intersected || currentHit.distance < hit.distance)) {
                 hit = currentHit;
                 hit.index = i;
@@ -128,6 +134,9 @@ private:
     Vec3<float> origin;     // Starting position of the ray
     Vec3<float> direction;  // Direction of the ray
     float epsilon;
+
+    const Model* originModel;
+    int originTriangleIndex;
 };
 
 #endif

@@ -187,6 +187,8 @@ void TD5(int width, int height, std::string& filename) {
     Vec3<float> lightPos = Vec3<float>(2.f, 2.f, -2.25f);
     Vec3<float> lightColor = Vec3<float>(1.f, 1.f, 1.f);
     float lightIntensity = 1.f;
+    // PointLight pointLight(lightPos, lightColor, lightIntensity);
+    // scene.add(pointLight);
 
     Vec3<float> lightDir = Vec3<float>(-1.f, -1.f, 0.f);
     AreaLight areaLight(lightPos, lightColor, lightIntensity, lightDir, 0.4f);
@@ -196,6 +198,7 @@ void TD5(int width, int height, std::string& filename) {
     rayTracer.enableShadow();
     rayTracer.enableAntiAliasing(4);
     rayTracer.enableBVH();
+    rayTracer.enablePathTracing(3, 16);
     rayTracer.printInfos();
     rayTracer.render(img, scene);
     img.savePPM(filename);

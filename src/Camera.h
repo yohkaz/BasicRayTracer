@@ -36,7 +36,7 @@ public:
     float getHeight() const { return height; }
 
     Vec3<float> computePixelPosition(float x, float y) const {
-        return topLeftPixelPosition + (right* x * width) - (up * y * height);
+        return topLeftPixelPosition + (right * x * width) - (up * y * height);
     }
 
     void printInfos() const {
