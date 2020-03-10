@@ -8,7 +8,7 @@
 
 class Camera {
 public:
-    Camera(): position(Vec3<float>(0, 0, 0)), direction(Vec3<float>(0, 0, -1)), distanceToPlane(0.2), fieldOfView(45), aspectRatio(3/2.0f) {
+    Camera(): position(Vec3<float>(0, 0, 1)), direction(Vec3<float>(0, 0, -1)), distanceToPlane(0.2), fieldOfView(45), aspectRatio(3/2.0f) {
         // Compute width & height from the aspect ratio + distance + fov
         height = 2.0f * distanceToPlane * tan((fieldOfView * PI) / (180.0 * 2.0));
         width = height * aspectRatio;
@@ -19,7 +19,7 @@ public:
         right = normalize(cross(up, n));
         up = normalize(cross(n, right));
 
-        topLeftPixelPosition = ((position - n)*distanceToPlane) - right*(width/2.0f) + up*(height/2.0f);
+        topLeftPixelPosition = (position - (n * distanceToPlane)) - right*(width/2.0f) + up*(height/2.0f);
         printInfos();
     }
 

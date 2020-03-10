@@ -39,6 +39,12 @@ public:
         computeVertexNormals();
     }
 
+    void translate(Vec3<float> t) {
+        for (auto& v: vertices)
+            v += t;
+        aabb.compute(vertices);
+    }
+
     // Set functions
     void setMaterial(const Material& m) { material = m; }
 
@@ -73,7 +79,6 @@ private:
                 float x, y, z;
                 if (!(iss >> x >> y >> z))
                     break;  // error
-                z -= 3;
                 vertices.push_back(Vec3<float>(x, y, z));
             } else if (numberOfFaces-- > 0) {
                 int numberOfIndices;

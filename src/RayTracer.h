@@ -129,20 +129,48 @@ private:
         return shading;
     }
 
+    Vec3<float> cosineSampleHemisphere(const Ray::Hit& hit, const Model& model) {
+        float u1 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+        float u2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+
+        float r = std::sqrt(u1);
+        float theta = 2 * PI * u2;
+
+        float x = r * std::cos(theta);
+        float y = r * std::sin(theta);
+
+        // direction in tangent space
+        Vec3<float> rayDirection(x, y, std::sqrt(std::max(0.0f, 1 - u1)));
+
+        // Compute coordinate system
+        const auto& vertices = model.getVertices();
+        const auto& indices = model.getIndices();
+
+        Vec3<float> n = -normalize(hit.interpolatedNormal);
+        Vec3<float> up = vertices[indices[hit.index][0]] - vertices[indices[hit.index][1]];
+        Vec3<float> right = normalize(cross(up, n));
+        up = normalize(cross(n, right));
+
+        return rayDirection[0] * right + rayDirection[1] * up + rayDirection[2] * (-n);
+    }
+
     int recursivePathTrace(const Ray& ray, const Scene& scene, int depth, Vec3<float>& shading) {
         if (depth == 0)
             return 0;
 
         Ray::Hit hit;
         Model* p_modelHit = nullptr;
-        if (!rayTrace(ray, scene.getModels(), hit, &p_modelHit) || dot(hit.interpolatedNormal, ray.getDirection()) > 0.1f)
+        if (!rayTrace(ray, scene.getModels(), hit, &p_modelHit))
             return 0; // TODO: default shading here (background) ?
+        else if (dot(hit.interpolatedNormal, ray.getDirection()) > 0.f)
+            return 1;
 
         // Direct lighting
         shading += computeHitShading(*p_modelHit, hit, scene);
 
         Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
-        Vec3<float> randomDirection = normalize(Vec3<float>(rand(), rand(), rand()));
+        // Vec3<float> randomDirection = normalize(Vec3<float>(rand(), rand(), rand()));
+        Vec3<float> randomDirection = cosineSampleHemisphere(hit, *p_modelHit);
         Ray newRay = Ray(hitPosition, randomDirection, p_modelHit, hit.index);
 
         // Indirect lighting
@@ -168,7 +196,7 @@ private:
             int bouncings = recursivePathTrace(ray, scene, boundDepth, currentShading);
             if (bouncings) {
                 pathTraced = true;
-                currentShading /= bouncings;
+                // currentShading /= bouncings;
             } else {
                 currentShading = img(i, j); // add background pixel
             }

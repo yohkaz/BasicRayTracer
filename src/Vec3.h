@@ -1,14 +1,3 @@
-// --------------------------------------------------------------------------
-// Copyright(C) 2009-2016
-// Tamy Boubekeur
-//
-// Permission granted to use this code only for teaching projects and
-// private practice.
-//
-// Do not distribute this code outside the teaching assignements.
-// All rights reserved.
-// --------------------------------------------------------------------------
-
 #pragma once
 
 #include <cmath>

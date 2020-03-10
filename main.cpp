@@ -204,6 +204,85 @@ void TD5(int width, int height, std::string& filename) {
     img.savePPM(filename);
 }
 
+void TD6(int width, int height, std::string& filename) {
+    // Blue color
+    Vec3<float> blue(0.15, 0.15, 0.15);
+    // White color
+    Vec3<float> white(0, 0, 0);
+
+    // Define our image
+    Image img(width, height);
+    img.printInfos();
+    img.fillBackgroundY(white, blue);
+    // Define our Scene
+    Scene scene;
+
+    // Define a plane model
+    std::vector<Vec3<float>> plane_vertices = {Vec3<float>(1.5, -0.5, -0.5),
+                                                  Vec3<float>(-1.5, -0.5, -0.5),
+                                                  Vec3<float>(-1.5, -0.5, -4.0),
+                                                  Vec3<float>(1.5, -0.5, -4.0),
+                                                  
+                                                  Vec3<float>(-1.5, 1.5, -0.5),
+                                                  Vec3<float>(-1.5, 1.5, -4.0),};
+    std::vector<Vec3<int>> plane_indices = {Vec3<int>(0, 2, 1), Vec3<int>(0, 3, 2)};
+                                            // Vec3<int>(2, 4, 1), Vec3<int>(2, 5, 4)};
+    Model plane(plane_vertices, plane_indices);
+    Material planeMaterial(Vec3<float>(0.6, 0.0, 0.0), 1.f, 1.f);
+    plane.setMaterial(planeMaterial);
+    // Add plane to scene
+    scene.add(plane);
+
+    // Define a face1 model
+    Model face1("../models/face.off");
+    // Material face1Material(Vec3<float>(0.8, 0.6, 0.3), 0.8f, 0.40f);
+    Material face1Material(Vec3<float>(0.0, 0.0, 0.0), 0.8f, 0.40f);
+    face1.translate(Vec3<float>(0.0f, 0.f, -2.f));
+    face1.setMaterial(face1Material);
+    // Add face to scene
+    scene.add(face1);
+
+    // Define a face2 model
+    Model face2("../models/face.off");
+    Material face2Material(Vec3<float>(0.5, 0.9, 0.5), 0.8f, 0.40f);
+    face2.translate(Vec3<float>(0.8f, 0.f, -1.5f));
+    face2.setMaterial(face2Material);
+    // Add face to scene
+    scene.add(face2);
+
+    // Define a face3 model
+    Model face3("../models/face.off");
+    Material face3Material(Vec3<float>(0.3, 0.6, 0.8), 0.8f, 0.40f);
+    face3.translate(Vec3<float>(-0.8f, 0.f, -2.5f));
+    face3.setMaterial(face3Material);
+    // Add face to scene
+    scene.add(face3);
+
+    // Define an area light
+    Vec3<float> lightPos = Vec3<float>(2.f, 2.f, -1.25f);
+    Vec3<float> lightColor = Vec3<float>(1.f, 1.f, 1.f);
+    float lightIntensity = 1.f;
+    Vec3<float> lightDir = Vec3<float>(-1.f, -1.f, 0.f);
+    AreaLight areaLight(lightPos, lightColor, lightIntensity, lightDir, 0.4f);
+    scene.add(areaLight);
+
+    // Define a point light
+    lightPos = Vec3<float>(0.f, 2.f, -1.25f);
+    lightColor = Vec3<float>(1.f, 1.f, 1.f);
+    lightIntensity = 0.2f;
+    PointLight pointLight(lightPos, lightColor, lightIntensity);
+    // scene.add(pointLight);
+
+    RayTracer rayTracer;
+    rayTracer.enableShadow();
+    rayTracer.enableAntiAliasing(4);
+    rayTracer.enableBVH();
+    rayTracer.enablePathTracing(1, 16);
+    rayTracer.printInfos();
+    rayTracer.render(img, scene);
+    img.savePPM(filename);
+}
+
 void parseArguments(int argc, char *argv[], int& width, int& height, std::string& filename) {
     // Parse arguments
     for(int i = 1; i < argc; i++) {
@@ -231,7 +310,8 @@ int main(int argc, char *argv[]) {
     // TD2(width, height, filename);
     // TD3(width, height, filename);
     // TD4(width, height, filename);
-    TD5(width, height, filename);
+    // TD5(width, height, filename);
+    TD6(width, height, filename);
 
     return 0;
 }
