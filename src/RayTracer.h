@@ -154,19 +154,19 @@ private:
         return rayDirection[0] * right + rayDirection[1] * up + rayDirection[2] * (-n);
     }
 
-    int recursivePathTrace(const Ray& ray, const Scene& scene, int depth, Vec3<float>& shading) {
+    bool recursivePathTrace(const Ray& ray, const Scene& scene, int depth, Vec3<float>& shading) {
         if (depth == 0)
-            return 0;
+            return false;
 
         Ray::Hit hit;
         Model* p_modelHit = nullptr;
         if (!rayTrace(ray, scene.getModels(), hit, &p_modelHit))
-            return 0; // TODO: default shading here (background) ?
+            return false; // TODO: default shading here (background) ?
         else if (dot(hit.interpolatedNormal, ray.getDirection()) > 0.f)
-            return 1;
+            return false;
 
         // Direct lighting
-        shading += computeHitShading(*p_modelHit, hit, scene);
+        shading = computeHitShading(*p_modelHit, hit, scene);
 
         Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
         // Vec3<float> randomDirection = normalize(Vec3<float>(rand(), rand(), rand()));
@@ -174,7 +174,12 @@ private:
         Ray newRay = Ray(hitPosition, randomDirection, p_modelHit, hit.index);
 
         // Indirect lighting
-        return 1 + recursivePathTrace(newRay, scene, depth-1, shading);
+        Vec3<float> indirectShading;
+        recursivePathTrace(newRay, scene, depth-1, indirectShading);
+        float cosAngle = std::max(dot(newRay.getDirection(), hit.interpolatedNormal), 0.f);
+        shading += indirectShading * cosAngle;
+
+        return true;
     }
 
     bool pathTrace(int i, int j, const Image& img, const Scene& scene, Vec3<float>& shading) {
@@ -182,26 +187,29 @@ private:
         shading = Vec3<float>(0.f, 0.f, 0.f);
 
         bool pathTraced = false;
-        for (int k = 0; k < samplesPerPixel; k++) {
-            // Random numbers between -0.5 and 0.5
-            float randomShiftX = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - 0.5f;
-            float randomShiftY = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - 0.5f;
+        int res = std::sqrt(samplesPerPixel);
+        for (int k = 0; k < res; k++) {
+            for (int l = 0; l < res; l++) {
+                //     // Random numbers between -0.5 and 0.5
+                //     float randomShiftX = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - 0.5f;
+                //     float randomShiftY = (static_cast <float> (rand()) / static_cast <float> (RAND_MAX)) - 0.5f;
+                float step = (0.5f / (float) res);
+                float xShift = -0.5f + step + (2.f * k * step);
+                float yShift = -0.5f + step + (2.f * l * step);
 
-            float x = (i + randomShiftX) / (float) img.getWidth();
-            float y = (j + randomShiftY) / (float) img.getHeight();
-            Vec3<float> pixelPosition = scene.getCamera().computePixelPosition(x, y);
+                float x = (i + xShift) / (float) img.getWidth();
+                float y = (j + yShift) / (float) img.getHeight();
+                Vec3<float> pixelPosition = scene.getCamera().computePixelPosition(x, y);
 
-            Ray ray(cameraPosition, normalize(pixelPosition - cameraPosition));
-            Vec3<float> currentShading(0.f, 0.f, 0.f);
-            int bouncings = recursivePathTrace(ray, scene, boundDepth, currentShading);
-            if (bouncings) {
-                pathTraced = true;
-                // currentShading /= bouncings;
-            } else {
-                currentShading = img(i, j); // add background pixel
+                Ray ray(cameraPosition, normalize(pixelPosition - cameraPosition));
+                Vec3<float> currentShading(0.f, 0.f, 0.f);
+                if (recursivePathTrace(ray, scene, boundDepth, currentShading))
+                    pathTraced = true;
+                else
+                    currentShading = img(i, j); // add background pixel
+
+                shading += currentShading;
             }
-
-            shading += currentShading;
         }
 
         shading /= samplesPerPixel;
