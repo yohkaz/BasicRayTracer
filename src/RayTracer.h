@@ -101,7 +101,7 @@ private:
         return foundHit;
     }
 
-    Vec3<float> computeHitShading(const Model& model, const Ray::Hit hit, const Scene& scene) {
+    Vec3<float> computeHitShading(const Ray& ray, const Ray::Hit hit, const Model& model, const Scene& scene) {
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
         Vec3<float> hitPosition = hit.b0*vertices[indices[hit.index][0]]
@@ -122,7 +122,7 @@ private:
                 shading += model.getMaterial().evaluateColorResponse(hitPosition,
                                                                      hit.interpolatedNormal,
                                                                      lightDirection,
-                                                                     normalize(scene.getCamera().getPosition() - hitPosition));
+                                                                     -ray.getDirection());
             }
         }
 
@@ -163,10 +163,10 @@ private:
         if (!rayTrace(ray, scene.getModels(), hit, &p_modelHit))
             return false; // TODO: default shading here (background) ?
         else if (dot(hit.interpolatedNormal, ray.getDirection()) > 0.f)
-            return false;
+            return true;
 
         // Direct lighting
-        shading = computeHitShading(*p_modelHit, hit, scene);
+        shading = computeHitShading(ray, hit, *p_modelHit, scene);
 
         Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
         // Vec3<float> randomDirection = normalize(Vec3<float>(rand(), rand(), rand()));
@@ -177,7 +177,10 @@ private:
         Vec3<float> indirectShading;
         recursivePathTrace(newRay, scene, depth-1, indirectShading);
         float cosAngle = std::max(dot(newRay.getDirection(), hit.interpolatedNormal), 0.f);
-        shading += indirectShading * cosAngle;
+        Vec3<float> BRDF = p_modelHit->getMaterial().evaluateBRDF(hit.interpolatedNormal,
+                                                                  newRay.getDirection(),
+                                                                  -ray.getDirection());
+        shading += BRDF * indirectShading * cosAngle;
 
         return true;
     }
@@ -225,7 +228,7 @@ private:
         if (!rayTrace(ray, scene.getModels(), hit, &p_modelHit))
             return false;
 
-        shading = computeHitShading(*p_modelHit, hit, scene);
+        shading = computeHitShading(ray, hit, *p_modelHit, scene);
 
         return true;
     }
