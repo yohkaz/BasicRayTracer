@@ -31,9 +31,10 @@ public:
 
     BVH(const std::vector<Model*>& models, int minSplit=100): root(new Node()),
                                                           models(models),
-                                                          minSplit(minSplit) {
+                                                          minSplit(minSplit),
+                                                          numberOfNodes(1) {
         std::cout << "BVH.h" << std::endl;
-        std::cout << "      Building BVH.."<< std::endl;
+        std::cout << "      Building BVH.. ";
 
         if (models.size() == 0)
             throw std::length_error("Length of models vector is 0.");
@@ -49,14 +50,15 @@ public:
 
         root->aabb = computeOverallAABB(models);
         recursiveBuild(root);
-        std::cout << "      Done" << std::endl;
+        std::cout << "Done" << std::endl;
+        printInfos();
     }
 
     ~BVH() { delete root; }
 
-    std::vector<Node*> recursiveIntersect(Node* node, const Ray& ray, Ray::Hit& hit) const {
+    std::vector<Node*> recursiveIntersect(Node* node, const Ray& ray) const {
         std::vector<Node*> nodesIntersected;
-        if (!ray.intersectAABB(node->aabb, hit))
+        if (!ray.intersectAABB(node->aabb))
             return nodesIntersected;
 
         if (!node->left && !node->right) {
@@ -66,9 +68,9 @@ public:
 
         std::vector<Node*> leftIntersected, rightIntersected;
         if (node->left)
-            leftIntersected = recursiveIntersect(node->left, ray, hit);
+            leftIntersected = recursiveIntersect(node->left, ray);
         if (node->right)
-            rightIntersected = recursiveIntersect(node->right, ray, hit);
+            rightIntersected = recursiveIntersect(node->right, ray);
 
         // Merge the vectors of intersected nodes
         nodesIntersected.reserve(leftIntersected.size() + rightIntersected.size());
@@ -78,8 +80,8 @@ public:
         return nodesIntersected;
     }
 
-    bool intersect(const Ray& ray, Ray::Hit& hit, std::map<int, std::vector<int>>& indices) const {
-        std::vector<Node*> nodesIntersected = recursiveIntersect(root, ray, hit);
+    bool intersect(const Ray& ray, std::map<int, std::vector<int>>& indices) const {
+        std::vector<Node*> nodesIntersected = recursiveIntersect(root, ray);
         if (nodesIntersected.size() == 0)
             return false;
 
@@ -91,9 +93,18 @@ public:
         return true;
     }
 
+    bool intersect(const Ray& ray, std::vector<Node*>& nodesIntersected) const {
+        nodesIntersected = recursiveIntersect(root, ray);
+        if (nodesIntersected.size() == 0)
+            return false;
+
+        return true;
+    }
+
     void printInfos() const {
         std::cout << "      # of models:        " << models.size() << std::endl;
         std::cout << "      min. size to split: " << minSplit << std::endl;
+        std::cout << "      number of nodes:    " << numberOfNodes << std::endl;
         // std::cout << "BVH Tree:" << std::endl;
         // printTreePostorder(root);
     }
@@ -132,8 +143,10 @@ private:
 
         // Split by the pivot
         for (int i = 0; i < 3; i++)
-            if(split(node, median[(axis + i) % 3], (axis + i) % 3))
+            if(split(node, median[(axis + i) % 3], (axis + i) % 3)) {
+                numberOfNodes += 2;
                 break;
+            }
 
         recursiveBuild(node->left);
         recursiveBuild(node->right);
@@ -182,6 +195,7 @@ private:
     Node* root;
     const std::vector<Model*>& models;
     int minSplit;
+    int numberOfNodes;
 };
 
 #endif

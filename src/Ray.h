@@ -9,7 +9,7 @@ class Ray {
 public:
     class Hit {
         public:
-        Hit() : index(-1), distance(0), b0(0), b1(0), b2(0), dPoint1(0), dPoint2(0) {}
+        Hit() : index(-1), distance(0), b0(0), b1(0), b2(0), info(nullptr) {}
         int index;                      // index of the corresponding triangle
         float distance;                 // distance of the hit
         Vec3<float> faceNormal;         // face normal of the corresponding triangle
@@ -20,9 +20,8 @@ public:
         float b1;
         float b2;
 
-        // AABB info
-        float dPoint1;
-        float dPoint2;
+        // extra info
+        void* info;
     };
 
     Ray(const Vec3<float>& origin, const Vec3<float>& direction,
@@ -59,7 +58,7 @@ public:
         return false;
     }
 
-    bool intersectAABB(const AABB& aabb, Hit& hit) const {
+    bool intersectAABB(const AABB& aabb) const {
         Vec3<float> tMin = (aabb.getMinBound() - origin) / direction;
         Vec3<float> tMax = (aabb.getMaxBound() - origin) / direction;
 
@@ -78,8 +77,8 @@ public:
         if (tMin[2] > tFirstPoint) tFirstPoint = tMin[2];
         if (tMax[2] < tSecondPoint) tSecondPoint = tMax[2];
 
-        hit.dPoint1 = tFirstPoint;
-        hit.dPoint2 = tSecondPoint;
+        // hit.dPoint1 = tFirstPoint;
+        // hit.dPoint2 = tSecondPoint;
 
         return true;
     }
@@ -91,7 +90,7 @@ public:
         const auto& vertexNormals = model.getVertexNormals();
 
         // Check if there is an intersection with the AABB
-        if (!intersectAABB(model.getAABB(), hit))
+        if (!intersectAABB(model.getAABB()))
             return false;
 
         // Iterate through each triangle and check if there is an intersection

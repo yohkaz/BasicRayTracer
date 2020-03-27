@@ -33,7 +33,7 @@ public:
     Vec3<float> evaluateBRDF(const Vec3<float>& normal, const Vec3<float>& wi, const Vec3<float>& wo) const {
         Vec3<float> wh = normalize(wi + wo);
         float NdotH = dot(normal, wh);
-        float NdotI = dot(normal, wi);
+        float NdotI = std::max(dot(normal, wi), 0.00001f); // to avoid (nan)s, it's canceled by cosAngle so its ok
         float NdotO = dot(normal, wo);
         float IdotH = dot(wi, wh);
 

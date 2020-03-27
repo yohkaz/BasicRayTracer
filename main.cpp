@@ -248,7 +248,7 @@ void TD6(int width, int height, std::string& filename) {
     face2.translate(Vec3<float>(0.8f, 0.f, -1.5f));
     face2.setMaterial(face2Material);
     // Add face to scene
-    scene.add(face2);
+    // scene.add(face2);
 
     // Define a face3 model
     Model face3("../models/face.off");
@@ -256,7 +256,7 @@ void TD6(int width, int height, std::string& filename) {
     face3.translate(Vec3<float>(-0.8f, 0.f, -2.5f));
     face3.setMaterial(face3Material);
     // Add face to scene
-    scene.add(face3);
+    // scene.add(face3);
 
     // Define an area light
     Vec3<float> lightPos = Vec3<float>(2.f, 2.f, -1.25f);
@@ -271,13 +271,15 @@ void TD6(int width, int height, std::string& filename) {
     lightColor = Vec3<float>(1.f, 1.f, 1.f);
     lightIntensity = 0.2f;
     PointLight pointLight(lightPos, lightColor, lightIntensity);
-    scene.add(pointLight);
+    // scene.add(pointLight);
 
     RayTracer rayTracer;
     rayTracer.enableShadow();
     rayTracer.enableAntiAliasing(4);
     rayTracer.enableBVH();
-    rayTracer.enablePathTracing(1, 25);
+    //rayTracer.enagleCosineWeighted();
+    rayTracer.enableLearningLT();
+    rayTracer.enablePathTracing(3, 9);
     rayTracer.printInfos();
     rayTracer.render(img, scene);
     img.savePPM(filename);
