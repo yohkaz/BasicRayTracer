@@ -39,9 +39,15 @@ public:
         computeVertexNormals();
     }
 
-    void translate(Vec3<float> t) {
+    void translate(const Vec3<float>& t) {
         for (auto& v: vertices)
             v += t;
+        aabb.compute(vertices);
+    }
+
+    void scale(const Vec3<float>& t) {
+        for (auto& v: vertices)
+            v *= t;
         aabb.compute(vertices);
     }
 

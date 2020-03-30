@@ -26,7 +26,7 @@ public:
         float u2 = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 
         s.direction = uniformSample(u1, u2);
-        s.probability = 1.f;
+        s.probability = 1.f / (2.f * M_PI);
     }
 };
 
@@ -50,7 +50,8 @@ public:
 
         // direction in tangent space
         s.direction = cosineWeightedSample(u1, u2);
-        s.probability = 1.f;
+        float cosAngle = std::max(dot(Vec3<float>(0.f, 0.f, 1.f), s.direction), 0.f);
+        s.probability = cosAngle / M_PI;
     }
 };
 

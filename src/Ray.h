@@ -4,12 +4,14 @@
 #include <algorithm>
 #include "Vec3.h"
 #include "Model.h"
+#include "AreaLight.h"
 
 class Ray {
 public:
     class Hit {
         public:
-        Hit() : index(-1), distance(0), b0(0), b1(0), b2(0), info(nullptr) {}
+        Hit() : index(-1), distance(0), b0(0), b1(0), b2(0),
+                m(nullptr), l(nullptr), info(nullptr) {}
         int index;                      // index of the corresponding triangle
         float distance;                 // distance of the hit
         Vec3<float> faceNormal;         // face normal of the corresponding triangle
@@ -19,6 +21,9 @@ public:
         float b0;
         float b1;
         float b2;
+
+        const Model* m;
+        const AreaLight* l;
 
         // extra info
         void* info;
@@ -83,6 +88,27 @@ public:
         return true;
     }
 
+    bool intersectAreaLight(const AreaLight& light, Hit& hit) const {
+        Vec3<float> pointInArea = light.getMinPoint();
+        auto& normal = light.getNormal();
+
+        if (dot(direction, normal) <= 0.f)
+            return false;
+
+        float length = dot(pointInArea - origin, normal) / dot(direction, normal);
+        Vec3<float> intersection = origin + length*direction;
+
+        bool isPointInArea = light.pointInArea(intersection - pointInArea);
+        if (isPointInArea) {
+            hit.distance = length;
+            hit.faceNormal = -light.getNormal();
+            hit.interpolatedNormal = -light.getNormal();
+            hit.l = &light;
+        }
+
+        return isPointInArea;
+    }
+
     bool intersect(const Model& model, Hit& hit, const std::vector<int>& relevantIndices = std::vector<int>()) const {
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
@@ -124,6 +150,7 @@ public:
             hit.interpolatedNormal = normalize(hit.b0*vertexNormals[indices[hit.index][0]]
                                     + hit.b1*vertexNormals[indices[hit.index][1]]
                                     + hit.b2*vertexNormals[indices[hit.index][2]]);
+            hit.m = &model;
         }
 
         return intersected;

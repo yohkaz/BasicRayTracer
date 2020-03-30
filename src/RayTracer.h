@@ -26,13 +26,15 @@ public:
         antialiasing = true;
         aaRes = res;
     }
-    void enableBVH() {
+    void enableBVH(int minSplit=100) {
         bvh = true;
+        bvhMinSplit = minSplit;
     }
-    void enablePathTracing(int depth, int spp) {
+    void enablePathTracing(int depth, int spp, bool pure=true) {
         pathTracing = true;
         boundDepth = depth;
         samplesPerPixel = spp;
+        purePathTracing = pure;
     }
 
     void enagleCosineWeighted() {
@@ -48,16 +50,16 @@ public:
         int height = img.getHeight();
 
         if (bvh)
-            pBvh = new BVH(scene.getModels());
+            pBvh = new BVH(scene.getModels(), bvhMinSplit);
 
         if (learningLT)
-            qtable = new Qtable(30, 30, 0.15f);
+            qtable = new Qtable(10, 20, 0.25f); // resX <= resY
         else if (cosineWeighted)
             pHemisphereSampling = new CosigneWeighted();
         else
             pHemisphereSampling = new HemisphereSampling();
 
-        #pragma omp parallel for collapse(2)
+        //#pragma omp parallel for collapse(2)
         for(int i = 0; i < width; i++) {
             for(int j = 0; j < height; j++) {
                 float x = i / (float) width;
@@ -85,6 +87,7 @@ public:
         std::cout << "      Anti-Aliasing:              " << (antialiasing == 0 ? "OFF" : "ON") << std::endl;
         std::cout << "      BVH:                        " << (bvh == 0 ? "OFF" : "ON") << std::endl;
         std::cout << "      Path-Tracing:               " << (pathTracing == 0 ? "OFF" : "ON") << std::endl;
+        std::cout << "      Pure Path-Tracing:          " << (purePathTracing == 0 ? "OFF" : "ON") << std::endl;
         std::cout << "      Cosine Weighted Sampling:   " << (cosineWeighted == 0 ? "OFF" : "ON") << std::endl;
         std::cout << "      Learning Light Transport:   " << (learningLT == 0 ? "OFF" : "ON") << std::endl;
     }
@@ -92,7 +95,7 @@ public:
 private:
     bool iterateThroughIndices(const Ray& ray,
                   const std::vector<Model*>& models,
-                  Ray::Hit& hit, Model** modelHit) {
+                  Ray::Hit& hit) {
         std::map<int, std::vector<int>> indices;
         if (bvh && !pBvh->intersect(ray, indices))
             return false;
@@ -117,8 +120,6 @@ private:
                 hit = currentHit;
                 foundHit = true;
                 e = hit.distance;
-                if (modelHit)
-                    *modelHit = model;
             }
         }
 
@@ -127,7 +128,7 @@ private:
 
     bool iterateThroughNodes(const Ray& ray,
                   const std::vector<Model*>& models,
-                  Ray::Hit& hit, Model** modelHit) {
+                  Ray::Hit& hit) {
         // BVH required!
         if (!bvh)
             return false;
@@ -147,8 +148,6 @@ private:
                     hit.info = node;
                     foundHit = true;
                     e = hit.distance;
-                    if (modelHit)
-                        *modelHit = model;
                 }
             }
         }
@@ -158,14 +157,15 @@ private:
 
     bool rayTrace(const Ray& ray,
                   const std::vector<Model*>& models,
-                  Ray::Hit& hit, Model** modelHit) {
+                  Ray::Hit& hit) {
         if (learningLT)
-            return iterateThroughNodes(ray, models, hit, modelHit);
+            return iterateThroughNodes(ray, models, hit);
         else
-            return iterateThroughIndices(ray, models, hit, modelHit);
+            return iterateThroughIndices(ray, models, hit);
     }
 
-    Vec3<float> computeHitShading(const Ray& ray, const Ray::Hit hit, const Model& model, const Scene& scene) {
+    Vec3<float> computeHitShading(const Ray& ray, const Ray::Hit hit, const Scene& scene) {
+        const Model& model = *hit.m;
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
         Vec3<float> hitPosition = hit.b0*vertices[indices[hit.index][0]]
@@ -180,27 +180,27 @@ private:
             Ray shadowRay(hitPosition, lightDirection, &model, hit.index);
             Ray::Hit shadowHit;
 
-            if(!shadow || !rayTrace(shadowRay, scene.getModels(), shadowHit, nullptr)
+            if(!shadow || !rayTrace(shadowRay, scene.getModels(), shadowHit)
                     || shadowHit.distance > dist(lightPos, hitPosition)) {
-                // shading += modelHit.getMaterial().evaluateColorResponse(hit.interpolatedNormal, lightDirection*light->getIntensity());
-                shading += model.getMaterial().evaluateColorResponse(hitPosition,
-                                                                     hit.interpolatedNormal,
-                                                                     lightDirection,
-                                                                     -ray.getDirection());
+                shading += light->getIntensity()
+                           * model.getMaterial().evaluateColorResponse(hit.interpolatedNormal,
+                                                                       lightDirection,
+                                                                       -ray.getDirection());
             }
         }
 
         return shading;
     }
 
-    HemisphereSampling::Sample sampleDirection(const Ray::Hit& hit, const Model& model) {
+    HemisphereSampling::Sample sampleDirection(const Ray::Hit& hit) {
         HemisphereSampling::Sample s;
-        if (learningLT) {
-            pHemisphereSampling = qtable->getHemisphereSampler(static_cast<const BVH::Node*>(hit.info));
-        }
-        pHemisphereSampling->sampleDirection(s);
+        if (learningLT)
+            qtable->sampleDirection(static_cast<const BVH::Node*>(hit.info), s);
+        else
+            pHemisphereSampling->sampleDirection(s);
 
         // Compute coordinate system
+        const Model& model = *hit.m;
         const auto& vertices = model.getVertices();
         const auto& indices = model.getIndices();
 
@@ -221,32 +221,40 @@ private:
             return false;
 
         Ray::Hit hit;
-        Model* p_modelHit = nullptr;
-        if (!rayTrace(ray, scene.getModels(), hit, &p_modelHit))
+        if (!rayTrace(ray, scene.getModels(), hit))
             return false; // TODO: default shading here (background) ?
-        //else if (dot(hit.interpolatedNormal, ray.getDirection()) > 0.f)
-        //    return true;
 
-        // Direct lighting
-        shading = computeHitShading(ray, hit, *p_modelHit, scene);
+        if (purePathTracing) {
+            float emittedLevel = hit.m->getMaterial().getEmittedLevel();
+            shading = emittedLevel * hit.m->getMaterial().getColor();
+        } else {
+            // Direct lighting
+            shading = computeHitShading(ray, hit, scene);
+        }
 
         // Update Q-table if learning enabled
         auto nHit = static_cast<const BVH::Node*>(hit.info);
         if (learningLT && origin && nHit && sampleIndex >= 0)
-            qtable->update(origin, nHit, sampleIndex, shading, p_modelHit->getMaterial());
+            qtable->update(origin, nHit, sampleIndex, shading, hit.m->getMaterial());
+
+        if (purePathTracing)
+            if (hit.m->getMaterial().getEmittedLevel() > 0.99) // Considered a light source
+                return true;
 
         Vec3<float> hitPosition = ray.getOrigin() + hit.distance*ray.getDirection();
-        auto sample = sampleDirection(hit, *p_modelHit);
-        Ray newRay = Ray(hitPosition, sample.direction, p_modelHit, hit.index);
+        auto sample = sampleDirection(hit);
+        Ray newRay = Ray(hitPosition, sample.direction, hit.m, hit.index);
 
         // Indirect lighting
         Vec3<float> indirectShading;
         recursivePathTrace(newRay, scene, depth-1, indirectShading, nHit, sample.index);
-        float cosAngle = std::max(dot(newRay.getDirection(), hit.interpolatedNormal), 0.f);
-        Vec3<float> BRDF = p_modelHit->getMaterial().evaluateBRDF(hit.interpolatedNormal,
+        Vec3<float> response = hit.m->getMaterial().evaluateColorResponse(hit.interpolatedNormal,
                                                                   newRay.getDirection(),
                                                                   -ray.getDirection());
-        shading += BRDF * indirectShading * cosAngle;
+        shading += (response * indirectShading) / sample.probability;
+        shading[0] = std::min(shading[0], 1.f);
+        shading[1] = std::min(shading[1], 1.f);
+        shading[2] = std::min(shading[2], 1.f);
 
         return true;
     }
@@ -281,7 +289,7 @@ private:
             }
         }
 
-        shading /= samplesPerPixel;
+        shading /= res*res;
         return pathTraced;
     }
 
@@ -290,11 +298,10 @@ private:
         Ray ray(cameraPosition, normalize(pixelPosition - cameraPosition));
 
         Ray::Hit hit;
-        Model* p_modelHit = nullptr;
-        if (!rayTrace(ray, scene.getModels(), hit, &p_modelHit))
+        if (!rayTrace(ray, scene.getModels(), hit))
             return false;
 
-        shading = computeHitShading(ray, hit, *p_modelHit, scene);
+        shading = computeHitShading(ray, hit, scene);
 
         return true;
     }
@@ -324,19 +331,20 @@ private:
         return result;
     }
 
-    bool shadow;        // Shadows
-    bool antialiasing;  // Anti-aliasing
-    bool bvh;           // BVH acceleration
-    bool pathTracing;   // Path Tracing
-    bool cosineWeighted;// Cosine Weighted Sampling
-    bool learningLT;    // Learning Light Transport
+    bool shadow;            // Shadows
+    bool antialiasing;      // Anti-aliasing
+    bool bvh;               // BVH acceleration
+    bool pathTracing;       // Path Tracing
+    bool purePathTracing;   // Pure Path Tracing (no direct lighting)
+    bool cosineWeighted;    // Cosine Weighted Sampling
+    bool learningLT;        // Learning Light Transport
 
-    int aaRes;          // Anti-aliasing resolution
+    int aaRes;              // Anti-aliasing resolution
 
     BVH* pBvh;
+    int bvhMinSplit;
     int boundDepth;
     int samplesPerPixel;
-
     HemisphereSampling* pHemisphereSampling;
     Qtable* qtable;
 };

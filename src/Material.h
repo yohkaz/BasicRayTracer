@@ -10,31 +10,32 @@ public:
     Material() = default;
     Material(const Vec3<float>& color,
              float kd,
-             float alpha = 0.f,
-             float metallicness = 0.5f): color(color), kd(kd), alpha(alpha), metallicness(metallicness), noise(nullptr) {}
+             float alpha = 0.2f, // need to be != 0 and > 0!
+             float metallicness = 0.5f,
+             float emitted = 0.f): color(color),
+                                   emitted(emitted),
+                                   kd(kd), alpha(alpha),
+                                   metallicness(metallicness), noise(nullptr) {}
+
+    Vec3<float> getColor() const { return color; }
+
+    float getEmittedLevel() const { return emitted; }
+
     Vec3<float> evaluateColorResponse(const Vec3<float>& normal, const Vec3<float>& wi) const {
         float cosAngle = std::max(dot(normal, wi), 0.f);
         return color*kd*cosAngle;
     }
 
-    Vec3<float> evaluateColorResponse(const Vec3<float>& p, const Vec3<float>& normal, const Vec3<float>& wi, const Vec3<float>& wo) const {
+    Vec3<float> evaluateColorResponse(const Vec3<float>& normal, const Vec3<float>& wi, const Vec3<float>& wo) const {
         float cosAngle = std::max(dot(normal, wi), 0.f);
-        Vec3<float> colorUsed = color;
-
-        float noiseValue = noise ? 1.f + noise->eval(p) : 1.f;
-        if (noise) {
-            Vec3<float> noisyColor(color[0]*noiseValue, color[1]*noiseValue, color[2]*noiseValue);
-            colorUsed = noisyColor;
-        }
-
-        return cosAngle*colorUsed*evaluateBRDF(normal, wi, wo);
+        return cosAngle*color*evaluateBRDF(normal, wi, wo);
     }
 
     Vec3<float> evaluateBRDF(const Vec3<float>& normal, const Vec3<float>& wi, const Vec3<float>& wo) const {
         Vec3<float> wh = normalize(wi + wo);
-        float NdotH = dot(normal, wh);
+        float NdotH = std::max(dot(normal, wh), 0.00001f);
         float NdotI = std::max(dot(normal, wi), 0.00001f); // to avoid (nan)s, it's canceled by cosAngle so its ok
-        float NdotO = dot(normal, wo);
+        float NdotO = std::max(dot(normal, wo), 0.00001f); // to avoid (nan)s, it's canceled by cosAngle so its ok
         float IdotH = dot(wi, wh);
 
         // GGX Distribution
@@ -55,7 +56,7 @@ public:
         // Specular BRDF
         Vec3<float> fs = (dGGX*fGGX*gGGX) / (4 * NdotI * NdotO);
         // Diffuse BRDF
-        Vec3<float> fd = Vec3<float>(kd, kd, kd);
+        Vec3<float> fd = Vec3<float>(kd, kd, kd) / M_PI;
 
         return (fs + fd);
     }
@@ -66,6 +67,7 @@ public:
 
 private:
     Vec3<float> color;
+    float emitted;
     float kd;           // diffuse coefficient
     float alpha;        // roughness
     float metallicness;

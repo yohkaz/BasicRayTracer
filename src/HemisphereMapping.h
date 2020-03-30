@@ -16,7 +16,7 @@ public:
     }
 
     Vec3<float> getDir(int idx) {
-        return mapIndexToDirection(idx);
+        return normalize(mapIndexToDirection(idx));
     }
 
     void updateByIndex(int idx, const Vec3<float>& update) {
@@ -38,6 +38,8 @@ public:
         for (std::size_t i = 0; i < grid.size(); i++) {
             normalizedGrid[i] = grid[i].length();
             sum += normalizedGrid[i];
+            //if (std::isinf(sum))
+            //    std::cout << normalizedGrid[i] << "//" << grid[i] << std::endl;;
         }
         for (std::size_t i = 0; i < grid.size(); i++)
             normalizedGrid[i] = normalizedGrid[i] / sum;
@@ -48,14 +50,25 @@ public:
         // Pick the right index
         s.index = grid.size() - 1;
         for (int i = 0; i < (int) cumulative.size(); i++) {
-            if (r < cumulative[i] + 0.0000001f) {
+            if (r < cumulative[i]) {
                 s.index = i;
                 break;
             }
         }
-
         s.direction = normalize(mapIndexToDirection(s.index));
-        s.probability = normalizedGrid[s.index];
+        s.probability = ((float) grid.size() * normalizedGrid[s.index]) / (2.f * M_PI);
+
+        //int maxIndex = 0;
+        //float max = normalizedGrid[0];
+        //for (std::size_t i = 0; i < grid.size(); i++) {
+        //    if (normalizedGrid[i] > max) {
+        //        maxIndex = i;
+        //        max = normalizedGrid[i];
+        //    }
+        //}
+
+        //if (max < 0.0001f)
+            //std::cout << max << "//" << sum << "//" << grid[maxIndex] << "//" << grid[maxIndex].length() << std::endl;
     }
 
 private:

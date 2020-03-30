@@ -22,16 +22,23 @@ public:
 
     void update(const BVH::Node* nOrigin, const BVH::Node* nHit, int wIndex,
                 const Vec3<float>& irradiance, const Material& material) {
-        auto& q = table.at(nOrigin).getValue(wIndex);
-        auto w = table.at(nOrigin).getDir(wIndex);
+        auto& hemisphereMapping = table.at(nOrigin);
+        auto& q = hemisphereMapping.getValue(wIndex);
+        auto w = hemisphereMapping.getDir(wIndex);
 
         // x = nOrigin, y = nHit
         // Q'(x, w) = (1 - lr) * Q(x, w)
         //            + lr * (Le(y, -w) + [max/integral]fs(wi, w) * cosThetaI * Q(y, wi))
         Vec3<float> qUpdated = (1.f - lr) * q
-                               + lr * (irradiance + maxValue(nHit, w, material));
+                               + lr * (irradiance + estimateIntegral(nHit, w, material));
 
-        table.at(nOrigin).updateByIndex(wIndex, qUpdated);
+        if (qUpdated.length() < 0.5f)
+            qUpdated = normalize(Vec3<float>(1, 1, 1)) * 0.5f;
+
+        if (qUpdated.length() > 10000.f)
+            qUpdated = normalize(qUpdated) * 10000.f;
+
+        hemisphereMapping.updateByIndex(wIndex, qUpdated);
     }
 
 private:
@@ -39,26 +46,47 @@ private:
                          const Vec3<float>& w,
                          const Material& material) {
         auto ret = table.insert({y, HemisphereMapping(resX, resY)});
-        auto& it = ret.first;
+        auto& mapping = ret.first->second;
  
-        auto wi = it->second.getValue(0);
-        float maxLengthWi = wi.length();
-        for (int i = 0; i < (int) it->second.size(); i++) {
-            auto& currentQ = it->second.getValue(i);
-            if (currentQ.length() > maxLengthWi) {
-                wi = currentQ;
+        int wiIndex = 0;
+        auto Qy = mapping.getValue(wiIndex);
+        float maxLengthQy = Qy.length();
+        for (int i = 0; i < (int) mapping.size(); i++) {
+            auto& currentQy = mapping.getValue(i);
+            if (currentQy.length() > maxLengthQy) {
+                wiIndex = i;
+                Qy = currentQy;
+                maxLengthQy = currentQy.length();
             }
         }
 
         // Need to multiply by cosAngle and fs
-        Vec3<float> normal(0.f, 0.f, 1.f);
-        float cosAngle = std::max(dot(wi, normal), 0.f);
-        Vec3<float> fs = material.evaluateBRDF(normal, wi, w);
-        return fs * wi * cosAngle;
+        //Vec3<float> wi = mapping.getDir(wiIndex);
+        //Vec3<float> normal(0.f, 0.f, 1.f);
+        //float cosAngle = std::max(dot(wi, normal), 0.f);
+        //Vec3<float> fs = material.evaluateBRDF(normal, wi, w);
+        //return fs * Qy * cosAngle;
+        return Qy;
     }
 
-    void estimateIntegral(const Material& material, const Vec3<float>& dir) {
-        // TODO: implement, compare to using maxValue
+    Vec3<float> estimateIntegral(const BVH::Node* y,
+                                 const Vec3<float>& w,
+                                 const Material& material) {
+        auto ret = table.insert({y, HemisphereMapping(resX, resY)});
+        auto& mapping = ret.first->second;
+ 
+        Vec3<float> sum(0.f, 0.f, 0.f);
+        Vec3<float> normal(0.f, 0.f, 1.f);
+        for (int i = 0; i < (int) mapping.size(); i++) {
+            auto& Qy = mapping.getValue(i);
+            Vec3<float> wi = mapping.getDir(i);
+            float cosAngle = std::max(dot(wi, normal), 0.f);
+            Vec3<float> fs = material.evaluateBRDF(normal, wi, w);
+            sum += fs * Qy * cosAngle;
+        }
+
+        return sum * ((2.f * M_PI) / (float) mapping.size());
+        //return sum / (float) mapping.size();
     }
 
     // Node -> hemisphere
