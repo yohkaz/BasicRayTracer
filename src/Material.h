@@ -3,7 +3,6 @@
 
 #include "Vec3.h"
 #include "Worley.h"
-#include "RGBHSV.h"
 
 class Material {
 public:

@@ -222,14 +222,13 @@ private:
 
         Ray::Hit hit;
         if (!rayTrace(ray, scene.getModels(), hit))
-            return false; // TODO: default shading here (background) ?
+            return false;
 
-        if (purePathTracing) {
-            float emittedLevel = hit.m->getMaterial().getEmittedLevel();
-            shading = emittedLevel * hit.m->getMaterial().getColor();
-        } else {
-            // Direct lighting
-            shading = computeHitShading(ray, hit, scene);
+        float emittedLevel = hit.m->getMaterial().getEmittedLevel();
+        shading = emittedLevel * hit.m->getMaterial().getColor();
+
+        if (!purePathTracing) { // Direct lighting
+            shading += computeHitShading(ray, hit, scene);
         }
 
         // Update Q-table if learning enabled
